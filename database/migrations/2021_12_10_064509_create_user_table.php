@@ -19,20 +19,18 @@ class CreateUserTable extends Migration
             $table->string('firstname',55)->nullable();
             $table->string('lastname',55)->nullable();
             $table->string('gender')->default('مرد');
-            $table->string('invationalCode')->nullable();
+//            $table->string('Invitational Code')->nullable();
             $table->date('birthdate')->nullable();
-            $table->boolean('verified')->default(false);
+//            $table->boolean('verified')->default(false);
             $table->string('email')->nullable();
             $table->boolean('isAdmin')->default(false);
             $table->string('password');
             //faviriotes
             $table->string('phoneNumber',20)->unique();
-            $table->boolean('phoneVerified')->default(false);
             $table->integer('credit')->default(0);
             //history
             $table->string('province')->default('فارس');
             $table->string('city')->default('شیراز');
-//            $table->string('recommendationCode')->nullable();
             //recommender
 //            $table->string('recomUsed')->default(false);
             //purchasedAudios
