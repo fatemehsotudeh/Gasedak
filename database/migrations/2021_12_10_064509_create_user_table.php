@@ -19,9 +19,7 @@ class CreateUserTable extends Migration
             $table->string('firstname',55)->nullable();
             $table->string('lastname',55)->nullable();
             $table->string('gender')->default('مرد');
-//            $table->string('Invitational Code')->nullable();
             $table->date('birthdate')->nullable();
-//            $table->boolean('verified')->default(false);
             $table->string('email')->nullable();
             $table->boolean('isAdmin')->default(false);
             $table->string('password');
@@ -31,8 +29,6 @@ class CreateUserTable extends Migration
             //history
             $table->string('province')->default('فارس');
             $table->string('city')->default('شیراز');
-            //recommender
-//            $table->string('recomUsed')->default(false);
             //purchasedAudios
             $table->timestamps();
 
