@@ -24,7 +24,7 @@ class CreateUserTable extends Migration
             $table->boolean('isAdmin')->default(false);
             $table->string('password');
             //faviriotes
-            $table->string('phoneNumber',20)->unique();
+            $table->string('phoneNumber',20);
             $table->integer('credit')->default(0);
             //history
             $table->string('province')->default('فارس');
@@ -32,8 +32,13 @@ class CreateUserTable extends Migration
             //purchasedAudios
             $table->timestamps();
 
+            $table->foreign('phoneNumber')
+                ->references('phoneNumber')
+                ->on('smsTokens');
+
             $table->charset='utf8';
             $table->collation='utf8_general_ci';
+
         });
     }
 

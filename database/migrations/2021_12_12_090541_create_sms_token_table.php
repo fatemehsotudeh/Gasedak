@@ -15,14 +15,10 @@ class CreateSmsTokenTable extends Migration
     {
         Schema::create('smsTokens', function (Blueprint $table) {
             $table->id();
-            $table->string('phoneNumber',20);
+            $table->string('phoneNumber',20)->unique();
             $table->string('smsCode');
             $table->boolean('isVerified')->default(false);
             $table->timestamps();
-
-            $table->foreign('phoneNumber')
-                ->references('phoneNumber')
-                ->on('users');
 
             $table->charset='utf8';
             $table->collation='utf8_general_ci';
