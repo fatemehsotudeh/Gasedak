@@ -24,4 +24,4 @@
 //$router->post('/register','AuthController@register');
 //$router->post('/login','AuthController@login');
 $router->post('/requestToken','SmsTokenController@requestToken');
-//$router->post('/validateToken','SmsTokenController@validateToken');
+$router->post('/validateToken','SmsTokenController@validateToken');

@@ -50,10 +50,10 @@ class SmsTokenController extends Controller
             //else create new row
             if(SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
                 SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode'=>$smsToken->smsCode]);
-                return response()->json(["message" => "Send smsCode successfully"]);
+                return response()->json(["message" => "Send smsCode successfully"],200);
             }else{
                 $smsToken->save();
-                return response()->json(["message" => "Send smsCode successfully"]);
+                return response()->json(["message" => "Send smsCode successfully"],200);
             }
         }
         catch(\Kavenegar\Exceptions\ApiException $e){
@@ -66,4 +66,42 @@ class SmsTokenController extends Controller
         }
     }
 
+    public function validateToken(Request $request)
+    {
+        $phoneNumber = $request->phoneNumber;
+        $code = $request->code;
+
+        // Check if fields are empty
+        if (empty($phoneNumber) or empty($code)) {
+            return response()->json(['status' => 'error', 'message' => 'You must fill the phoneNumber field']);
+        }
+
+        //check phoneNumber
+        if (!preg_match("/^[0-9]{11}$/", $phoneNumber)) {
+            return response()->json(['status' => 'error', 'message' => 'You must provide the correct phoneNumber']);
+        }
+
+        if (SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
+              $user = SMSToken::where('phoneNumber', '=', $phoneNumber)->get();
+              $user = json_decode($user[0], false);
+
+              //diff between two datetime to check if smsCode expired or not
+              $currentDate = date('Y-m-d H:i:s');//current date and time
+              $sendCodeDate = $user->updated_at;//send code time
+              $diff = strtotime($currentDate) - strtotime($sendCodeDate);
+
+              if ($diff <= 120 && $user->smsCode == $code) {
+                   SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['isVerified' => true]);
+                   return response()->json(["message" => "Verified user successfully"], 200);
+               } else if ($diff > 120 && $user->smsCode == $code) {
+                   SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode' => 'null']);
+                   return response()->json(["message" => "Code expired"], 403);
+               } else if ($user->smsCode != $code) {
+                   return response()->json(["message" => "Code incorrect"], 401);
+               }
+
+            }else{
+                return response()->json(["message" => "An error has occurred "], 500);
+            }
+    }
 }
