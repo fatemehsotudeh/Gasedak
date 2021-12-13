@@ -34,9 +34,8 @@ class SmsTokenController extends Controller
             //need params
             $receptor =$phoneNumber ;
             $token= $smsCode;
-            $template="verifyCode";
-
-            $API_KEY="612F4258705957766A4738334C65584B3648527663455267625672324C373162653177525646696A576E453D";
+            $template=$_ENV['template'];
+            $API_KEY=$_ENV['API_KEY'];
 
             $api = new \Kavenegar\KavenegarApi($API_KEY);
             $api->VerifyLookup($receptor, $token,0,0, $template);
@@ -49,7 +48,7 @@ class SmsTokenController extends Controller
             //if phoneNumber exit update sms Code column
             //else create new row
             if(SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
-                SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode'=>$smsToken->smsCode]);
+                SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode'=>$smsToken->smsCode,'isVerified'=>false]);
                 return response()->json(["message" => "Send smsCode successfully"],200);
             }else{
                 $smsToken->save();
