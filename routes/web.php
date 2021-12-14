@@ -21,7 +21,18 @@
 //    $router->get('/test','TestController@test');
 //});
 
-//$router->post('/register','AuthController@register');
-//$router->post('/login','AuthController@login');
+
 $router->post('/requestToken','SmsTokenController@requestToken');
 $router->post('/validateToken','SmsTokenController@validateToken');
+$router->post('/register','AuthController@register');
+$router->post('/login','AuthController@login');
+$router->post('/requestResetPassToken','SmsTokenController@requestResetPassToken');
+$router->post('/requestResetPassToken','SmsTokenController@requestResetPassToken');
+$router->post('/resetPassword','AuthController@resetPassword');
+
+//routes need auth middleware
+$router->group(['middleware' => 'auth'], function () use ($router) {
+    $router->post('/registerInvatition','InvitationalCodeController@registerInvatition');
+    $router->post('/getInvatitionCode','InvitationalCodeController@getInvatitionCode');
+});
+

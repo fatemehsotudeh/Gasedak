@@ -49,8 +49,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
     public function getJWTCustomClaims()
     {
         return [
-            'id' => $this->id,
-            'phoneNumber'=>$this->phoneNumber
+            'id' => $this->id
         ];
     }
 }

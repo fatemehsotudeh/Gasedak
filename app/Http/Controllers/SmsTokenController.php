@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SMSToken;
 use http\Client\Response;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 class SmsTokenController extends Controller
@@ -103,4 +104,62 @@ class SmsTokenController extends Controller
                 return response()->json(["message" => "An error has occurred "], 500);
             }
     }
+
+    public function requestResetPassToken(Request $request)
+    {
+        $phoneNumber=$request->phoneNumber;
+
+        // Check if field is empty
+        if(empty($phoneNumber) ) {
+            return response()->json(['status' => 'error', 'message' => 'You must fill the phoneNumber field']);
+        }
+
+        //check phoneNumber
+        if(!preg_match("/^[0-9]{11}$/", $phoneNumber)) {
+            return response()->json(['status' => 'error', 'message' => 'You must provide the correct phoneNumber']);
+        }
+
+        //generate random 5 digit code
+        $smsCode=rand(
+            ((int) str_pad(1, 5, 0, STR_PAD_RIGHT)),
+            ((int) str_pad(9, 5, 9, STR_PAD_RIGHT))
+        );
+
+        //send smsCode using kavenegar api
+        try {
+            //need params
+            $receptor =$phoneNumber ;
+            $token= $smsCode;
+            $template=$_ENV['template'];
+            $API_KEY=$_ENV['API_KEY'];
+
+            $api = new \Kavenegar\KavenegarApi($API_KEY);
+
+            //save code and phone number in table smsTokens
+            $smsToken=new SMSToken();
+            $smsToken->smsCode=$token;
+            $smsToken->phoneNumber=$phoneNumber;
+
+            //if phoneNumber exists end sms code and update sms Code column
+            //else error occur
+            if(SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
+                $api->VerifyLookup($receptor, $token,0,0, $template);
+                SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode'=>$smsToken->smsCode,'isVerified'=>false]);
+                return response()->json(["message" => "Send smsCode successfully"],200);
+            }else{
+                return response()->json(["message" => "user not exists"]);
+            }
+        }
+        catch(\Kavenegar\Exceptions\ApiException $e){
+            // در صورتی که خروجی وب سرویس 200 نباشد این خطا رخ می دهد
+            return response()->json(["status" => "error","message" => $e->errorMessage()]);
+        }
+        catch(\Kavenegar\Exceptions\HttpException $e){
+            // در زمانی که مشکلی در برقرای ارتباط با وب سرویس وجود داشته باشد این خطا رخ می دهد
+            return response()->json(["status" => "error","message" => $e->errorMessage()],500);
+        }
+    }
+
+
 }
+
