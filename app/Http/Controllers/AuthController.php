@@ -15,6 +15,9 @@ use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\JWT;
 use Tymon\JWTAuth\JWTGuard;
 
+use App\Libraries;
+
+
 class AuthController extends Controller
 {
     //
@@ -23,7 +26,6 @@ class AuthController extends Controller
         $phoneNumber = $request->phoneNumber;
         $password = $request->password;
         $invitationalCode=$request->invitationalCode;
-
 
         // Check if field is empty
         if (empty($phoneNumber) or empty($password)) {
@@ -45,21 +47,24 @@ class AuthController extends Controller
             return response()->json(['status' => 'error', 'message' => 'User already exists with this phoneNumber'],422);
         }
 
-        // Create new user
+        // Create new user if verified
         if (SMSToken::where(['phoneNumber'=>$phoneNumber,'isVerified'=>1])->exists()) {
             try {
                 $user = new User();
                 $user->phoneNumber = $phoneNumber;
                 $user->password = app('hash')->make($password);
+
                 if ($user->save()) {
+                    //create invitationalCode for user
                     $invitCode=new InvitationalCode();
 
                     //generate 8 digits random invitational code for user
-                    $randCode=substr(md5(uniqid(rand(), true)),null,8);
+                    $helper=new Libraries\Helper();
+                    $randCode=$helper->generateAlphaNumericCode(8);
 
                     //Check that the random code is unique
                     while (InvitationalCode::where('invitationalCode','randCode')->exists()){
-                        $randCode=substr(md5(uniqid(rand(), true)),null,8);
+                        $randCode=$helper->generateAlphaNumericCode(8);;
                     }
 
                     //save generated invitational code in invitationalCodes table
@@ -68,6 +73,7 @@ class AuthController extends Controller
                     $invitCode->save();
 
                     $invitCode=new InvitationalCode();
+
                     //Set user information if entered the invitation code
                     if (!empty($invitationalCode)&&($foundCodeRow=InvitationalCode::where([['userId','!=',$user->id],['invitationalCode', $invitationalCode]])->exists())){
                         $phone=User::where('id',$user->id)->pluck('phoneNumber');
@@ -90,8 +96,9 @@ class AuthController extends Controller
                         }
 
                     $invitCode->usedBy=$phones;
+
                     if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
-                        return response()->json(['message'=>'register code successfully'],200);
+                        return response()->json(['message'=>'registered code successfully'],200);
                     }
 
                     }
@@ -189,9 +196,8 @@ class AuthController extends Controller
             $user = json_decode($user[0], false);
 
             //diff between two datetime to check if smsCode expired or not
-            $currentDate = date('Y-m-d H:i:s');//current date and time
-            $sendCodeDate = $user->updated_at;//send code time
-            $diff = strtotime($currentDate) - strtotime($sendCodeDate);
+            $helper=new Libraries\Helper();
+            $diff=$helper->diffDate(date('Y-m-d H:i:s'),$user->updated_at);
 
             if ($diff <= 120 && $user->smsCode == $code) {
                 $hashPassword=app('hash',)->make('newPassword');

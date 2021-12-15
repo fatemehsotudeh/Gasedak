@@ -7,6 +7,8 @@ use http\Client\Response;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
+use App\Libraries;
+
 class SmsTokenController extends Controller
 {
     //
@@ -25,18 +27,17 @@ class SmsTokenController extends Controller
         }
 
         //generate random 5 digit code
-        $smsCode=rand(
-            ((int) str_pad(1, 5, 0, STR_PAD_RIGHT)),
-            ((int) str_pad(9, 5, 9, STR_PAD_RIGHT))
-        );
+        $helper=new Libraries\Helper();
+        $smsCode=$helper->generateRandomDigitsCode(5);
+
 
         //send smsCode using kavenegar api
         try {
             //need params
             $receptor =$phoneNumber ;
             $token= $smsCode;
-            $template=$_ENV['template'];
-            $API_KEY=$_ENV['API_KEY'];
+            $template=env('template');
+            $API_KEY=env('API_KEY');
 
             $api = new \Kavenegar\KavenegarApi($API_KEY);
             $api->VerifyLookup($receptor, $token,0,0, $template);
@@ -46,8 +47,8 @@ class SmsTokenController extends Controller
             $smsToken->smsCode=$token;
             $smsToken->phoneNumber=$phoneNumber;
 
-            //if phoneNumber exit update sms Code column
-            //else create new row
+            //if phoneNumber exists update sms Code column
+            //else create new
             if(SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
                 SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode'=>$smsToken->smsCode,'isVerified'=>false]);
                 return response()->json(["message" => "Send smsCode successfully"],200);
@@ -86,9 +87,8 @@ class SmsTokenController extends Controller
               $user = json_decode($user[0], false);
 
               //diff between two datetime to check if smsCode expired or not
-              $currentDate = date('Y-m-d H:i:s');//current date and time
-              $sendCodeDate = $user->updated_at;//send code time
-              $diff = strtotime($currentDate) - strtotime($sendCodeDate);
+              $helper=new Libraries\Helper();
+              $diff=$helper->diffDate(date('Y-m-d H:i:s'),$user->updated_at);
 
               if ($diff <= 120 && $user->smsCode == $code) {
                    SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['isVerified' => true]);
@@ -120,18 +120,16 @@ class SmsTokenController extends Controller
         }
 
         //generate random 5 digit code
-        $smsCode=rand(
-            ((int) str_pad(1, 5, 0, STR_PAD_RIGHT)),
-            ((int) str_pad(9, 5, 9, STR_PAD_RIGHT))
-        );
+        $helper=new Libraries\Helper();
+        $smsCode=$helper->generateRandomDigitsCode(5);
 
         //send smsCode using kavenegar api
         try {
             //need params
             $receptor =$phoneNumber ;
             $token= $smsCode;
-            $template=$_ENV['template'];
-            $API_KEY=$_ENV['API_KEY'];
+            $template=env('template');
+            $API_KEY=env('API_KEY');
 
             $api = new \Kavenegar\KavenegarApi($API_KEY);
 
@@ -159,7 +157,6 @@ class SmsTokenController extends Controller
             return response()->json(["status" => "error","message" => $e->errorMessage()],500);
         }
     }
-
 
 }
 

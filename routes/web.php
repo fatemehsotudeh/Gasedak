@@ -17,9 +17,7 @@
 //    return $router->app->version();
 //});
 
-//$router->group(['middleware' => 'auth'], function () use ($router) {
-//    $router->get('/test','TestController@test');
-//});
+$router->post('/test','TestController@test');
 
 
 $router->post('/requestToken','SmsTokenController@requestToken');

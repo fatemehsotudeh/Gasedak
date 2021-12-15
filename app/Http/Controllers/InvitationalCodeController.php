@@ -9,13 +9,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use function PHPUnit\Framework\isJson;
 
+use App\Libraries;
+
 class InvitationalCodeController extends Controller
 {
     //
     public function registerInvatition(Request $request)
     {
-        $token = $request->bearerToken();
-        $identifiedUser=json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))));
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
         try {
             if (!empty($request->code))
@@ -47,7 +50,9 @@ class InvitationalCodeController extends Controller
                 if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
                     return response()->json(['message'=>'register code successfully'],200);
                 }
-           }
+           }else{
+                return response()->json(['status' => 'error', 'message' => 'The code entered is incorrect']);
+            }
         }catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -55,8 +60,9 @@ class InvitationalCodeController extends Controller
 
     public function getInvatitionCode(Request $request)
     {
-        $token = $request->bearerToken();
-        $identifiedUser =json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))));
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
         try {
             $code=InvitationalCode::where('userId',$identifiedUser->id)->get('invitationalCode')[0];
