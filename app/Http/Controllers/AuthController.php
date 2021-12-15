@@ -191,8 +191,8 @@ class AuthController extends Controller
             return response()->json(['status' => 'error', 'message' => 'You must provide the correct phoneNumber']);
         }
 
-        if (SMSToken::where('phoneNumber', '=', $phoneNumber)->exists()) {
-            $user = SMSToken::where('phoneNumber', '=', $phoneNumber)->get();
+        if (SMSToken::where('phoneNumber',$phoneNumber)->exists()) {
+            $user = SMSToken::where('phoneNumber',$phoneNumber)->get();
             $user = json_decode($user[0], false);
 
             //diff between two datetime to check if smsCode expired or not
@@ -200,11 +200,12 @@ class AuthController extends Controller
             $diff=$helper->diffDate(date('Y-m-d H:i:s'),$user->updated_at);
 
             if ($diff <= 120 && $user->smsCode == $code) {
-                $hashPassword=app('hash',)->make('newPassword');
-                User::where('phoneNumber', '=', $phoneNumber)->update(['password'=>$hashPassword]);
-                return response()->json(["message" => "reset password successfully"], 200);
+                $hashPassword=app('hash')->make($newPassword);
+                if(User::where('phoneNumber',$phoneNumber)->update(['password'=>$hashPassword])){
+                    return response()->json(["message" => "reset password successfully"], 200);
+                }
             } else if ($diff > 120 && $user->smsCode == $code) {
-                SMSToken::where('phoneNumber', '=', $phoneNumber)->update(['smsCode' => 'null']);
+                SMSToken::where('phoneNumber',$phoneNumber)->update(['smsCode' => 'null']);
                 return response()->json(["message" => "Code expired"], 403);
             } else if ($user->smsCode != $code) {
                 return response()->json(["message" => "Code incorrect"], 401);

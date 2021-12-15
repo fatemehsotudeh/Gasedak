@@ -32,5 +32,6 @@ $router->post('/resetPassword','AuthController@resetPassword');
 $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/registerInvatition','InvitationalCodeController@registerInvatition');
     $router->post('/getInvatitionCode','InvitationalCodeController@getInvatitionCode');
+    $router->post('/updatePassword','UserController@updatePassword');
 });
 
