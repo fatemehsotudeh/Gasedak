@@ -59,4 +59,22 @@ class UserAvatarController extends Controller
 
     }
 
+    public function deleteAvatar(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        try {
+            if (UserAvatar::where('userId',$identifiedUser->id)->exists()){
+                $imagePath=UserAvatar::where('userId',$identifiedUser->id)->pluck('imagePath')[0];
+                unlink($imagePath);
+                if (UserAvatar::where('userId',$identifiedUser->id)->update(['imagePath'=> null])){
+                    return response()->json(['message' =>'delete image successfully'],200);
+                }
+            }
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
 }

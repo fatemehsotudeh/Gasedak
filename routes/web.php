@@ -34,5 +34,6 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/updatePassword','UserController@updatePassword');
     $router->post('/updateProfile','UserController@updateProfile');
     $router->post('/uploadAvatar','UserAvatarController@uploadAvatar');
+    $router->post('/deleteAvatar','UserAvatarController@deleteAvatar');
 });
 
