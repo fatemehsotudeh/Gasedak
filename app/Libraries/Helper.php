@@ -31,4 +31,22 @@ class Helper{
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
 
+    public function imageSavePath($name)
+    {
+        return base_path()."\public\uploads\\".$name;
+    }
+
+    public function maxImageSize()
+    {
+        return (2* pow(10,6));
+    }
+
+    public function isAllowedImageType($imageType)
+    {
+        if ($imageType==="image/jpeg" or $imageType==="image/png" or $imageType==="image/jpg" or $imageType==="image/gif"){
+            return true;
+        }else{
+            return false;
+        }
+    }
 };

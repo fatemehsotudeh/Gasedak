@@ -17,7 +17,7 @@
 //    return $router->app->version();
 //});
 
-//$router->post('/test','TestController@test');
+$router->post('/test','TestController@test');
 
 
 $router->post('/requestToken','SmsTokenController@requestToken');
@@ -33,5 +33,6 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getInvatitionCode','InvitationalCodeController@getInvatitionCode');
     $router->post('/updatePassword','UserController@updatePassword');
     $router->post('/updateProfile','UserController@updateProfile');
+    $router->post('/uploadAvatar','UserAvatarController@uploadAvatar');
 });
 
