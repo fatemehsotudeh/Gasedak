@@ -35,5 +35,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/updateProfile','UserController@updateProfile');
     $router->post('/uploadAvatar','UserAvatarController@uploadAvatar');
     $router->post('/deleteAvatar','UserAvatarController@deleteAvatar');
+    $router->post('/addAddress','UserAddressController@addAddress');
+    $router->post('/editAddress','UserAddressController@editAddress');
+    $router->post('/getAddress','UserAddressController@getAddress');
+    $router->post('/deleteAddress','UserAddressController@deleteAddress');
 });
 
