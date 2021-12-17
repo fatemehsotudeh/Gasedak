@@ -26,9 +26,10 @@ class InvitationalCodeController extends Controller
                 $invitationalCode=$request->code;
             }
             $invitCode=new InvitationalCode();
-            if ($foundCodeRow=InvitationalCode::where([['userId','!=',$identifiedUser->id],['invitationalcode',$invitationalCode]])->exists()){
+            $foundCodeRow=InvitationalCode::where([['userId','!=',$identifiedUser->id],['invitationalcode',$invitationalCode]]);
+            if ($foundCodeRow->exists()){
                 $phone=User::where('id',$identifiedUser->id)->pluck('phoneNumber');
-                $phones=InvitationalCode::where([['userId','!=',$identifiedUser->id],['invitationalcode',$invitationalCode]])->pluck('usedBy')[0];
+                $phones=$foundCodeRow->pluck('usedBy')[0];
 
                 //array for who uses this code
                 if($phones==null){
@@ -42,14 +43,15 @@ class InvitationalCodeController extends Controller
                             array_push($phones,$phone[0]);
                         }
                     }
-                    if ($flag==0){
-                        return response()->json(['message'=>'register code already exists']);
-                    }
+//                    if ($flag==0){
+//                        return response()->json(['message'=>'register code already exists']);
+//                    }
                 }
                 $invitCode->usedBy=$phones;
-                if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
-                    return response()->json(['message'=>'register code successfully'],200);
-                }
+                InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1]);
+//                if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
+//                    return response()->json(['message'=>'register code successfully'],200);
+//                }
            }else{
                 return response()->json(['status' => 'error', 'message' => 'The code entered is incorrect']);
             }

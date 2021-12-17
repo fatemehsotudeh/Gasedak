@@ -36,8 +36,9 @@ class UserAvatarController extends Controller
                             $userAvatar->userId=$identifiedUser->id;
                             $userAvatar->imagePath=$imageSavePath;
 
-                            if (UserAvatar::where('userId',$identifiedUser->id)->exists()){
-                                UserAvatar::where('userId',$identifiedUser->id)->update(['imagePath'=>$imageSavePath]);
+                            $user=UserAvatar::where('userId',$identifiedUser->id);
+                            if ($user->exists()){
+                                $user->update(['imagePath'=>$imageSavePath]);
                             }else{
                                 $userAvatar->save();
                             }
@@ -66,10 +67,11 @@ class UserAvatarController extends Controller
         $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
         try {
-            if (UserAvatar::where('userId',$identifiedUser->id)->exists()){
-                $imagePath=UserAvatar::where('userId',$identifiedUser->id)->pluck('imagePath')[0];
+            $user=UserAvatar::where('userId',$identifiedUser->id);
+            if ($user->exists()){
+                $imagePath=$user->pluck('imagePath')[0];
                 unlink($imagePath);
-                if (UserAvatar::where('userId',$identifiedUser->id)->update(['imagePath'=> null])){
+                if ($user->update(['imagePath'=> null])){
                     return response()->json(['message' =>'delete image successfully'],200);
                 }
             }

@@ -79,8 +79,9 @@ class UserController extends Controller
                 'gender'=>$gender,
                 'birthdate'=>$birthdate
             ];
-            $userProfileData=User::where('id',$identifiedUser->id)->get()[0];
-            if(User::where('id',$identifiedUser->id)->update($updatedFields)){
+            $user=User::where('id',$identifiedUser->id);
+            $userProfileData=$user->get()[0];
+            if($user->update($updatedFields)){
                 return response()->json(['data'=>$userProfileData,'message'=>'update profile info successfully'],200);
             }
 
