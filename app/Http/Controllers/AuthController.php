@@ -104,7 +104,7 @@ class AuthController extends Controller
                 return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
             }
         }else{
-            return response()->json(['status' => 'error', 'message' => 'User not identified'], 500);
+            return response()->json(['status' => 'error', 'message' => 'User not identified'],401);
         }
 
     }
@@ -195,12 +195,12 @@ class AuthController extends Controller
                 $user = json_decode($user[0], false);
 
                 //diff between two datetime to check if smsCode expired or not
-                $helper = new Libraries\Helper();
-                $diff = $helper->diffDate(date('Y-m-d H:i:s'), $user->updated_at);
+                $helper=new Libraries\Helper();
+                $diff=$helper->diffDate(date('Y-m-d H:i:s'),$user->updated_at);
 
                 if ($diff <= 120 && $user->smsCode == $code) {
-                    $hashPassword = app('hash')->make($newPassword);
-                    if (User::where('phoneNumber', $phoneNumber)->update(['password' => $hashPassword])) {
+                    $hashPassword=app('hash')->make($newPassword);
+                    if(User::where('phoneNumber',$phoneNumber)->update(['password'=>$hashPassword])){
                         return response()->json(["message" => "reset password successfully"], 200);
                     }
                 } else if ($diff > 120 && $user->smsCode == $code) {
@@ -210,8 +210,8 @@ class AuthController extends Controller
                     return response()->json(["message" => "Code incorrect"], 401);
                 }
             }
-        }catch(\Exception $e){
+        }catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-      }
+        }
     }
 };

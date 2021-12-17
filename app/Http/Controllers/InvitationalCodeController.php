@@ -43,17 +43,16 @@ class InvitationalCodeController extends Controller
                             array_push($phones,$phone[0]);
                         }
                     }
-//                    if ($flag==0){
-//                        return response()->json(['message'=>'register code already exists']);
-//                    }
+                    if ($flag==0){
+                        return response()->json(['message'=>'register code already exists']);
+                    }
                 }
                 $invitCode->usedBy=$phones;
-                InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1]);
-//                if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
-//                    return response()->json(['message'=>'register code successfully'],200);
-//                }
+                if(InvitationalCode::where('invitationalCode',$invitationalCode)->update(['usedBy' => $invitCode->usedBy,'invitationUsed'=>1])){
+                    return response()->json(['message'=>'register code successfully'],200);
+                }
            }else{
-                return response()->json(['status' => 'error', 'message' => 'The code entered is incorrect']);
+                return response()->json(['status' => 'error', 'message' => 'The code entered is incorrect'],401);
             }
         }catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
