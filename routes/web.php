@@ -41,5 +41,6 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/deleteAddress','UserAddressController@deleteAddress');
     $router->post('/getWalletData','WalletController@getWalletData');
     $router->post('/updateBankId','WalletController@updateBankId');
+    $router->post('/requestIncreaseInventoryToken','SmsTokenController@requestIncreaseInventoryToken');
 });
 
