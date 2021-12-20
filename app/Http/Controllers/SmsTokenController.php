@@ -169,5 +169,10 @@ class SmsTokenController extends Controller
         return $this->requestResetPassToken($request);
     }
 
+    public function requestWithdrawalToken(Request $request)
+    {
+        //Because it does exactly the following method, instead of repeating the code, that method is called
+        return $this->requestResetPassToken($request);
+    }
 }
 

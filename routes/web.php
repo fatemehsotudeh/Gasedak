@@ -39,11 +39,14 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/editAddress','UserAddressController@editAddress');
     $router->post('/getAddress','UserAddressController@getAddress');
     $router->post('/deleteAddress','UserAddressController@deleteAddress');
+
     $router->post('/getWalletData','WalletController@getWalletData');
     $router->post('/updateBankId','WalletController@updateBankId');
     $router->post('/requestIncreaseInventoryToken','SmsTokenController@requestIncreaseInventoryToken');
     $router->post('/increaseInventory','WalletController@increaseInventory');
-
+    $router->post('/requestWithdrawalToken','SmsTokenController@requestWithdrawalToken');
+    $router->post('/withdrawalRequest','WalletController@withdrawalRequest');
+    $router->post('/historyOfRequests','WalletController@historyOfRequests');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 
