@@ -42,5 +42,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getWalletData','WalletController@getWalletData');
     $router->post('/updateBankId','WalletController@updateBankId');
     $router->post('/requestIncreaseInventoryToken','SmsTokenController@requestIncreaseInventoryToken');
+    $router->post('/increaseInventory','WalletController@increaseInventory');
+
 });
+$router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 
