@@ -133,4 +133,22 @@ class TicketController extends Controller
             return response()->json(['status'=>'error','message'=>'Photo size is larger than allowed']);
         }
     }
+
+    public function ticketList(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        try {
+              $ticketsList=Ticket::join('ticketmessages', 'tickets.id', '=', 'ticketId')
+                 ->where('tickets.userId',$identifiedUser->id)
+                 ->orderBy('ticketId')->get();
+
+              return response()->json(['data'=>$ticketsList,'message'=>'the list of tickets was returned successfully'],200);
+
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
 }
