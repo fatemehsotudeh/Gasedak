@@ -47,6 +47,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/requestWithdrawalToken','SmsTokenController@requestWithdrawalToken');
     $router->post('/withdrawalRequest','WalletController@withdrawalRequest');
     $router->post('/historyOfRequests','WalletController@historyOfRequests');
+    $router->post('/sendTicket','TicketController@sendTicket');
+    $router->post('/ticketList','TicketController@ticketList');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 

@@ -2,6 +2,11 @@
 
 namespace App\Libraries;
 
+
+
+use App\Models\TicketStatus;
+use Illuminate\Database\Eloquent\Model;
+
 class Helper{
     public function generateRandomDigitsCode($length)
     {
@@ -36,9 +41,19 @@ class Helper{
         return base_path()."\public\uploads\\".$name;
     }
 
+    public function fileSavePath($name)
+    {
+        return  $this->imageSavePath($name);
+    }
+
     public function maxImageSize()
     {
         return (2* pow(10,6));
+    }
+
+    public function maxFileSize()
+    {
+        return  $this->maxImageSize();
     }
 
     public function isAllowedImageType($imageType)
@@ -48,5 +63,30 @@ class Helper{
         }else{
             return false;
         }
+    }
+
+    public function isAllowedFileType($FileType)
+    {
+        if ($FileType==="image/jpeg" or $FileType==="image/png" or $FileType==="image/jpg" or $FileType==="image/gif" or $FileType==="application/x-rar" or $FileType==="application/zip"){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function initializeTicketStatusTable()
+    {
+        $ticketStatus=new TicketStatus();
+        $ticketStatus->name='waiting for answer';
+        $ticketStatus->save();
+
+        $ticketStatus=new TicketStatus();
+        $ticketStatus->name='answered';
+        $ticketStatus->save();
+
+        $ticketStatus=new TicketStatus();
+        $ticketStatus->name='closed';
+        $ticketStatus->save();
+
     }
 };
