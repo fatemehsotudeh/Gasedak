@@ -49,7 +49,7 @@ class TicketController extends Controller
                                 $ticketmessage->senderId=$identifiedUser->id;
                                 $ticketmessage->message=$message;
                                 $ticketmessage->save();
-                                return response()->json(['message'=>'send ticket successfully']);
+                                return response()->json(['message'=>'send ticket successfully'],200);
                             }
                             if (is_file($attachment)){
                                 if(is_string($filePath=$this->checkAndReceiveFile($attachment))){
@@ -58,13 +58,13 @@ class TicketController extends Controller
                                     $ticketmessage->message=$message;
                                     $ticketmessage->filePath=$filePath;
                                     $ticketmessage->save();
-                                    return response()->json(['message'=>'send ticket successfully']);
+                                    return response()->json(['message'=>'send ticket successfully'],200);
                                 }else{
                                     return $this->checkAndReceiveFile($attachment);
                                 }
                             }
                     }else{
-                        return response()->json(['status'=>'error','message'=>'This ticket is closed']);
+                        return response()->json(['status'=>'error','message'=>'This ticket is closed'],400);
                     }
                 }
             }catch (\Exception $e){
@@ -89,7 +89,7 @@ class TicketController extends Controller
                 $ticketmessage->senderId=$userId;
                 $ticketmessage->message=$message;
                 $ticketmessage->save();
-                return response()->json(['message'=>'send ticket successfully']);
+                return response()->json(['message'=>'send ticket successfully'],200);
             }
             if (is_file($attachment)){
                 if(is_string($filePath=$this->checkAndReceiveFile($attachment))){
@@ -99,7 +99,7 @@ class TicketController extends Controller
                     $ticketmessage->message=$message;
                     $ticketmessage->filePath=$filePath;
                     $ticketmessage->save();
-                    return response()->json(['message'=>'send ticket successfully']);
+                    return response()->json(['message'=>'send ticket successfully'],200);
                 }else{
                     return $this->checkAndReceiveFile($attachment);
                 }
@@ -127,10 +127,10 @@ class TicketController extends Controller
                     return $fileSavePath;
                 }
             }else{
-                return response()->json(['status'=>'error','message'=>'The uploaded file is not a photo or zip']);
+                return response()->json(['status'=>'error','message'=>'The uploaded file is not a photo or zip'],400);
             }
         }else{
-            return response()->json(['status'=>'error','message'=>'Photo size is larger than allowed']);
+            return response()->json(['status'=>'error','message'=>'Photo size is larger than allowed'],400);
         }
     }
 

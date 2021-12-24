@@ -75,7 +75,7 @@ class SmsTokenController extends Controller
 
         // Check if fields are empty
         if (empty($phoneNumber) or empty($code)) {
-            return response()->json(['status' => 'error', 'message' => 'You must fill the phoneNumber field']);
+            return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
         }
 
         //check phoneNumber
@@ -150,7 +150,7 @@ class SmsTokenController extends Controller
                 $userData->update(['smsCode'=>$smsToken->smsCode,'isVerified'=>false]);
                 return response()->json(["message" => "Send smsCode successfully"],200);
             }else{
-                return response()->json(["message" => "user not exists"]);
+                return response()->json(["message" => "user not exists"],401);
             }
         }
         catch(\Kavenegar\Exceptions\ApiException $e){

@@ -44,7 +44,7 @@ class InvitationalCodeController extends Controller
                         }
                     }
                     if ($flag==0){
-                        return response()->json(['message'=>'register code already exists']);
+                        return response()->json(['message'=>'register code already exists'],409);
                     }
                 }
                 $invitCode->usedBy=$phones;

@@ -29,7 +29,7 @@ class WalletController extends Controller
             if ($userWallet->exists()){
                 return response()->json(['data'=> $userWallet->get()[0] ,'message'=> 'get wallet data successfully'],200);
             }else{
-                return response()->json(['status'=>'error','message'=>'There is no wallet registered for this user']);
+                return response()->json(['status'=>'error','message'=>'There is no wallet registered for this user'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -132,7 +132,7 @@ class WalletController extends Controller
 
 
                     if ($err) {
-                        return response()->json(['status' =>'error','message'=>'curl error']);
+                        return response()->json(['status' =>'error','message'=>'curl error'],500);
                     } else {
                         if (empty($result['errors'])) {
                             if ($result['data']['code'] == 100) {
@@ -146,7 +146,7 @@ class WalletController extends Controller
                             }
                         }
                         else {
-                            return response()->json(['status' =>'error','message'=> $result['errors']['message']]);
+                            return response()->json(['status' =>'error','message'=> $result['errors']['message']],500);
                         }
                     }
                 } else if ($diff > 120 && $user->smsCode == $code) {
@@ -269,18 +269,18 @@ class WalletController extends Controller
 
                         //The amount of money withdrawn should not be less than 20000
                         if ($amount<20000){
-                            return response()->json(['status' => 'error', 'message' => 'The amount of money withdrawn should not be less than 20000']);
+                            return response()->json(['status' => 'error', 'message' => 'The amount of money withdrawn should not be less than 20000'],400);
                         }
 
                         //The requested amount should not more than wallet balance
                         if ($amount>$userBalance){
-                            return response()->json(['status' => 'error', 'message' => 'The requested amount should not more than wallet balance']);
+                            return response()->json(['status' => 'error', 'message' => 'The requested amount should not more than wallet balance'],400);
                         }
 
                         //if user bankId null return error
                         //else save transactions
                         if(!$userBankId){
-                            return response()->json(['status' => 'error', 'message' => 'To withdraw, you need to enter your bankId']);
+                            return response()->json(['status' => 'error', 'message' => 'To withdraw, you need to enter your bankId'],400);
                         }else{
                             //create new transaction for withdrawal
                             $withdrawalTransaction=new WithdrawalTransaction();
@@ -316,8 +316,11 @@ class WalletController extends Controller
             $allDeposits=DepositTransaction::where('userId',$identifiedUser->id)->get();
             $allWithdrawals=WithdrawalTransaction::where('userId',$identifiedUser->id)->get();
             return response()->json([
-                'allDeposits' =>$allDeposits,
-                'allWithdrawals' =>$allWithdrawals
+                'message'=>'return history of requests successfully',
+                'data'=>[
+                    'allDeposits' =>$allDeposits,
+                    'allWithdrawals' =>$allWithdrawals
+                ]
             ],200);
         }catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);

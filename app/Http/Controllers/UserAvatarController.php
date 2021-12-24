@@ -46,13 +46,13 @@ class UserAvatarController extends Controller
                         }
 
                     }else{
-                        return response()->json(['status'=>'error','message'=>'The uploaded file is not a photo']);
+                        return response()->json(['status'=>'error','message'=>'The uploaded file is not a photo'],400);
                     }
                 }else{
-                    return response()->json(['status'=>'error','message'=>'Photo size is larger than allowed']);
+                    return response()->json(['status'=>'error','message'=>'Photo size is larger than allowed'],400);
                 }
             }else{
-                return response()->json(['status'=>'error','message'=>'file does not exists']);
+                return response()->json(['status'=>'error','message'=>'file does not exists'],400);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);

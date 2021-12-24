@@ -49,7 +49,7 @@ class UserAddressController extends Controller
                 $userAddress->save();
                 return response()->json(['data' =>$userAddress,'message' =>'add user address successfully'],200);
             }else{
-                return response()->json(['status' =>'error','message' =>'user address already exists']);
+                return response()->json(['status' =>'error','message' =>'user address already exists'],409);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -68,7 +68,7 @@ class UserAddressController extends Controller
                 $userAddressList=$userAddress->get()[0];
                 return response()->json(['data' =>$userAddressList,'message' =>'get user address successfully'],200);
             }else{
-                return response()->json(['status' =>'error','message' =>'the address list is not registered for this user']);
+                return response()->json(['status' =>'error','message' =>'the address list is not registered for this user'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -120,7 +120,7 @@ class UserAddressController extends Controller
                     ]);
                 return response()->json(['data' =>$userAddress,'message' =>'edit user address successfully'],200);
             }else{
-                return response()->json(['status' =>'error','message' =>'The address list has not been registered for this user to change']);
+                return response()->json(['status' =>'error','message' =>'The address list has not been registered for this user to change'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -139,7 +139,7 @@ class UserAddressController extends Controller
                 $userAddressList=$userAddress->delete();
                 return response()->json(['data' =>$userAddressList,'message' =>'delete user address successfully'],200);
             }else{
-                return response()->json(['status' =>'error','message' =>'the address list is not registered for this user']);
+                return response()->json(['status' =>'error','message' =>'the address list is not registered for this user'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
