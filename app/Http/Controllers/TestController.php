@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UserAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +14,8 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
+//        $list=UserAddress::where('postalAddress','LIKE','%پلاک2%')->get();
+//        return $list;
 //        $helper=new Libraries\Helper();
 //        $randomCode=$helper->generateRandomDigitsCode(5);
 

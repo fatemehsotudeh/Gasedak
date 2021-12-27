@@ -49,6 +49,11 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/historyOfRequests','WalletController@historyOfRequests');
     $router->post('/sendTicket','TicketController@sendTicket');
     $router->post('/ticketList','TicketController@ticketList');
+
+    $router->post('/getAllNotifications','NotificationController@getAllNotifications');
+    $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
+
+
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 
