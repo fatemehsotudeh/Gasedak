@@ -52,6 +52,7 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
 
     $router->post('/getAllNotifications','NotificationController@getAllNotifications');
     $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
+    $router->post('/getStoreData','StoreController@getStoreData');
 
 
 });
