@@ -53,7 +53,11 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getAllNotifications','NotificationController@getAllNotifications');
     $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
     $router->post('/getStoreData','StoreController@getStoreData');
-
+    $router->post('/getStoreBooks','StoreController@getStoreBooks');
+    $router->post('/addToFavList','UserFavoriteGoodController@addToFavList');
+    $router->post('/getFavoriteList','UserFavoriteGoodController@getFavoriteList');
+    $router->post('/addUserFavoriteData','UserFavoriteDataController@addUserFavoriteData');
+    $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
 
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');

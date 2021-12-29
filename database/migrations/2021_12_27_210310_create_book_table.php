@@ -57,6 +57,7 @@ class CreateBookTable extends Migration
 
             $table->charset='utf8';
             $table->collation='utf8_general_ci';
+
         });
     }
 
