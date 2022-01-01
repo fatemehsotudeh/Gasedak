@@ -61,15 +61,15 @@ class UserController extends Controller
         $gender=$request->gender;
         $birthdate=$request->birthdate;
 
-        //validate email
-        if (!$helper->isValidEmail($email)) {
-            return response()->json(['message' => 'email is not a valid email address']);
-        }
-
-        //check firstname and lastname length
-        if (strlen($firstname)>=55 or strlen($lastname)>=55) {
-            return response()->json(['message' => 'name is not valid']);
-        }
+//        //validate email
+//        if (!$helper->isValidEmail($email)) {
+//            return response()->json(['message' => 'email is not a valid email address']);
+//        }
+//
+//        //check firstname and lastname length
+//        if (strlen($firstname)>=55 or strlen($lastname)>=55) {
+//            return response()->json(['message' => 'name is not valid']);
+//        }
 
         try {
             $updatedFields=[
@@ -83,6 +83,26 @@ class UserController extends Controller
             $userProfileData=$user->get()[0];
             if($user->update($updatedFields)){
                 return response()->json(['data'=>$userProfileData,'message'=>'update profile info successfully'],200);
+            }
+
+        }catch (\Exception $e){
+            return response()->json(['massage'=>$e->getMessage()],500);
+        }
+    }
+
+    public function getUserInfo(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        try {
+            $user=User::where('id',$identifiedUser->id);
+            if ($user->exists()){
+                $userProfileData=$user->get()[0];
+                return response()->json(['data'=>$userProfileData,'message'=>'return user info successfully'],200);
+            }else{
+                return response()->json(['status'=>'error','message'=>'no information has been registered for this user'],404);
             }
 
         }catch (\Exception $e){

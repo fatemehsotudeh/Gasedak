@@ -20,6 +20,8 @@ class CreateUserFavoriteData extends Migration
             $table->string('bookType');
             $table->string('importantThing');
             $table->string('howToBuy');
+            $table->string('userAgeRange');
+            $table->string('favoriteCategory');
             $table->timestamps();
 
             $table->foreign('userId')

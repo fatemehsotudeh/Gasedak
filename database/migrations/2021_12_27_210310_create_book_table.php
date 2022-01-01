@@ -26,7 +26,7 @@ class CreateBookTable extends Migration
             $table->integer('weight')->nullable();
             $table->integer('pageCount')->nullable();
             $table->string('pageType')->nullable();
-            $table->string('coverType')->nullable();
+           // $table->string('coverType')->nullable();
             $table->integer('volumeCount')->nullable();
             $table->string('publisher')->nullable();
             $table->json('authors');
@@ -39,7 +39,7 @@ class CreateBookTable extends Migration
             $table->decimal('rate',2,1)->nullable();
             $table->string('attachment')->nullable();
             $table->text('description')->nullable();
-            $table->boolean('isCollection')->default(false);
+            //$table->boolean('isCollection')->default(false);
             $table->bigInteger('purchaseCount')->default(0);
             $table->bigInteger('commentCount')->default(0);
             $table->bigInteger('viewCount')->default(0);

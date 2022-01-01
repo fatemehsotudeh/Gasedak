@@ -22,11 +22,8 @@ class UserFavoriteDataController extends Controller
         $bookType=$request->bookType;
         $howToBuy=$request->howToBuy;
         $importantThing=$request->importantThing;
-
-        // Check if field empty
-        if (empty($studyAmount) || empty($bookType) || empty($howToBuy) || empty($importantThing)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
-        }
+        $userAgeRange=$request->userAgeRange;
+        $favoriteCategory=$request->favoriteCategory;
 
         try {
             $userFavoriteData=UserFavoriteData::where('userId',$identifiedUser->id);
@@ -38,6 +35,8 @@ class UserFavoriteDataController extends Controller
                 $userFavoriteDataList->bookType=$bookType;
                 $userFavoriteDataList->howToBuy=$howToBuy;
                 $userFavoriteDataList->importantThing=$importantThing;
+                $userFavoriteDataList->userAgeRange=$userAgeRange;
+                $userFavoriteDataList->favoriteCategory=$favoriteCategory;
 
                 $userFavoriteDataList->save();
                 return response()->json(['message'=>'add user favorite data successfully'],200);
@@ -60,20 +59,20 @@ class UserFavoriteDataController extends Controller
         $bookType=$request->bookType;
         $howToBuy=$request->howToBuy;
         $importantThing=$request->importantThing;
+        $userAgeRange=$request->userAgeRange;
+        $favoriteCategory=$request->favoriteCategory;
 
-        // Check if field empty
-        if (empty($studyAmount) || empty($bookType) || empty($howToBuy) || empty($importantThing)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
-        }
 
         try {
             $userFavoriteData=UserFavoriteData::where('userId',$identifiedUser->id);
             if ($userFavoriteData->exists()){
                 $updateList=[
-                    'studyAmount'=>$studyAmount,
-                     'bookType'=>$bookType,
-                     'howToBuy'=>$howToBuy,
-                     'importantThing'=>$importantThing
+                    'studyAmount'=> $studyAmount,
+                     'bookType'=> $bookType,
+                     'howToBuy'=> $howToBuy,
+                     'importantThing'=> $importantThing,
+                     'userAgeRange'=> $userAgeRange,
+                     'favoriteCategory'=>$favoriteCategory
                 ];
 
                 $userFavoriteData->update($updateList);

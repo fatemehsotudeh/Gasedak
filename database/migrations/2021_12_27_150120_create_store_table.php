@@ -32,6 +32,10 @@ class CreateStoreTable extends Migration
             $table->string('imagePath')->nullable();
             $table->boolean('exhibition');
             $table->boolean('isLibrary');
+            $table->decimal('rate',2,1)->nullable();
+            $table->bigInteger('viewCount')->default(0);
+            $table->biginteger('favoriteCount')->default(0);
+            $table->bigInteger('purchaseCount')->default(0);
             $table->timestamps();
 
             $table->charset='utf8';
