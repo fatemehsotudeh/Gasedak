@@ -4,9 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserNotification extends Model
+class StoreAddress extends Model
 {
     //
-    protected $table='usernotifications';
-
+    protected $table='storesaddress';
 }

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\UserAvatar;
 use Illuminate\Http\Request;
 
 use App\Libraries;
+use function PHPUnit\Framework\isNull;
 
 class UserController extends Controller
 {
@@ -100,6 +102,12 @@ class UserController extends Controller
             $user=User::where('id',$identifiedUser->id);
             if ($user->exists()){
                 $userProfileData=$user->get()[0];
+//              dd(UserAvatar::where('userId',$identifiedUser->id)->pluck("imagePath"));
+                if(!empty($image=UserAvatar::where('userId',$identifiedUser->id)->pluck('imagePath')->first())){
+                    $userProfileData->imagePath=$image;
+                }else{
+                    $userProfileData->imagePath="";
+                }
                 return response()->json(['data'=>$userProfileData,'message'=>'return user info successfully'],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no information has been registered for this user'],404);

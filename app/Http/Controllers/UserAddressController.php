@@ -45,12 +45,8 @@ class UserAddressController extends Controller
         $userAddress->postalAddress=$postalAddress;
 
         try {
-            if(!UserAddress::where('userId',$identifiedUser->id)->exists()){
-                $userAddress->save();
-                return response()->json(['data' =>$userAddress,'message' =>'add user address successfully'],200);
-            }else{
-                return response()->json(['status' =>'error','message' =>'user address already exists'],409);
-            }
+             $userAddress->save();
+             return response()->json(['message' =>'add user address successfully'],200);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
@@ -65,7 +61,7 @@ class UserAddressController extends Controller
         try {
             $userAddress=UserAddress::where('userId',$identifiedUser->id);
             if($userAddress->exists()){
-                $userAddressList=$userAddress->get()[0];
+                $userAddressList=$userAddress->get();
                 return response()->json(['data' =>$userAddressList,'message' =>'get user address successfully'],200);
             }else{
                 return response()->json(['status' =>'error','message' =>'the address list is not registered for this user'],404);
@@ -87,9 +83,10 @@ class UserAddressController extends Controller
         $city=$request->city;
         $postalCode=$request->postalCode;
         $postalAddress=$request->postalAddress;
+        $addressId=$request->addressId;
 
         // Check if fields empty
-        if (empty($lat) or empty($lng) or empty($province) or empty($city) or empty($postalCode) or empty($postalAddress) ) {
+        if (empty($lat) or empty($lng) or empty($province) or empty($city) or empty($postalCode) or empty($postalAddress) or empty($addressId)) {
             return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
         }
 
@@ -108,7 +105,7 @@ class UserAddressController extends Controller
         $userAddress->postalAddress=$postalAddress;
 
         try {
-            $userAddressList=UserAddress::where('userId',$identifiedUser->id);
+            $userAddressList=UserAddress::where([['userId',$identifiedUser->id],['id',$addressId]]);
             if($userAddressList->exists()){
                 $userAddressList->update([
                     'lat' =>$userAddress->lat,
@@ -118,7 +115,7 @@ class UserAddressController extends Controller
                     'postalCode' =>$userAddress->postalCode,
                     'postalAddress' =>$userAddress->postalAddress
                     ]);
-                return response()->json(['data' =>$userAddress,'message' =>'edit user address successfully'],200);
+                return response()->json(['message' =>'edit user address successfully'],200);
             }else{
                 return response()->json(['status' =>'error','message' =>'The address list has not been registered for this user to change'],404);
             }
@@ -133,11 +130,16 @@ class UserAddressController extends Controller
         $helper=new Libraries\Helper();
         $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
+        $addressId=$request->addressId;
+
+        if (empty($addressId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill address id filed']);
+        }
         try {
-            $userAddress=UserAddress::where('userId',$identifiedUser->id);
+            $userAddress=UserAddress::where([['userId',$identifiedUser->id],['id',$addressId]]);
             if($userAddress->exists()){
                 $userAddressList=$userAddress->delete();
-                return response()->json(['data' =>$userAddressList,'message' =>'delete user address successfully'],200);
+                return response()->json(['message' =>'delete user address successfully'],200);
             }else{
                 return response()->json(['status' =>'error','message' =>'the address list is not registered for this user'],404);
             }

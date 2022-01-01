@@ -49,7 +49,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/withdrawalRequest','WalletController@withdrawalRequest');
     $router->post('/historyOfRequests','WalletController@historyOfRequests');
     $router->post('/sendTicket','TicketController@sendTicket');
-    $router->post('/ticketList','TicketController@ticketList');
+    $router->post('/mainTicketList','TicketController@mainTicketList');
+    $router->post('/subTicketList','TicketController@subTicketList');
+
 
     $router->post('/getAllNotifications','NotificationController@getAllNotifications');
     $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
@@ -59,6 +61,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getFavoriteList','UserFavoriteGoodController@getFavoriteList');
     $router->post('/addUserFavoriteData','UserFavoriteDataController@addUserFavoriteData');
     $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
+
+    $router->post('/searchByLocation','SearchController@searchByLocation');
 
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');

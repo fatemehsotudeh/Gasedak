@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\TicketStatus;
-use App\Models\UserAvatar;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -42,7 +41,7 @@ class TicketController extends Controller
             try {
                 $ticket=Ticket::where('id',$ticketId);
                     if ($ticket->exists()){
-                        if ($ticket->pluck('ticketStatusId')[0]!=3){
+                        if ($ticket->pluck('ticketStatusId')[0]!=TicketStatus::where('name','closed')->pluck('id')[0]){
                             $ticketmessage=new TicketMessage();
                             if (empty($attachment)){
                                 $ticketmessage->ticketId=$ticketId;
@@ -73,12 +72,13 @@ class TicketController extends Controller
         }
     }
 
-    public function createNewTicket($title,$message,$attachment,$userId){
+    public function createNewTicket($title,$message,$attachment,$userId)
+    {
         try {
             //save ticket
             $ticket=new Ticket();
             $ticket->userId=$userId;
-            $ticket->ticketStatusId=1;
+            $ticket->ticketStatusId=TicketStatus::where('name','waiting for answer')->pluck('id')[0];
             $ticket->title=$title;
 
             $ticketmessage=new TicketMessage();
@@ -134,19 +134,56 @@ class TicketController extends Controller
         }
     }
 
-    public function ticketList(Request $request)
+    public function mainTicketList(Request $request)
     {
         //decode bearer token
         $helper=new Libraries\Helper();
         $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
+        //return main tickets
         try {
-              $ticketsList=Ticket::join('ticketmessages', 'tickets.id', '=', 'ticketId')
-                 ->where('tickets.userId',$identifiedUser->id)
-                 ->orderBy('ticketId')->get();
+            $tickets=Ticket::where('tickets.userId',$identifiedUser->id);
+            if ($tickets->exists()){
+                $ticketsList=Ticket::join('ticketmessages', [['tickets.id', '=', 'ticketId'],['ticketmessages.created_at', '=', 'tickets.created_at']])
+                    ->join('ticketsstatus', 'ticketsstatus.id', '=', 'tickets.ticketStatusId')
+                    ->get();
 
-              return response()->json(['data'=>$ticketsList,'message'=>'the list of tickets was returned successfully'],200);
+                return response()->json(['data'=>$ticketsList,'message'=>'the list of tickets was returned successfully'],200);
+            }else{
+                return response()->json(['status'=>'error','message'=>"no tickets found for this user"],404);
+            }
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
 
+    public function subTicketList(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        $ticketId=$request->ticketId;
+
+        if (empty($ticketId)){
+            return response()->json(['message'=>'You must fill ticket id field']);
+        }
+
+        //return ticket messages
+        try {
+            $ticketsMessageList=TicketMessage::where('ticketId',$ticketId)->get();
+
+            //Delete the original ticket message
+            $ticketsMessageList->shift(1);
+
+
+            //If the array was empty, there is no message for this ticket
+            //else return messages successfully
+            if (sizeof($ticketsMessageList) > 0){
+                return response()->json(['data' =>$ticketsMessageList,'message'=>'the list of tickets was returned successfully'],200);
+            }else{
+                return response()->json(['status' =>'error','message'=>'no messages were found for the ticket'],404);
+            }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }

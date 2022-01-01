@@ -15,17 +15,16 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-        $translator=$request->translators;
-        $authors=$request->authors;
-        $book=new Book();
-        $book->name="ملت عشق";
-        $book->inventory=12;
-        $book->price=12000;
-        $book->ISBN=45794534;
-        $book->translators=["الیف شافاک"];
-        $book->authors=["ارسلان فصیحی"];
-//        $book->save();
-        return Book::where('id',5)->pluck('translators');
+//        $translator=$request->translators;
+//        $authors=$request->authors;
+//        $book=new Book();
+//        $book->name="ملت عشق";
+//        $book->inventory=12;
+//        $book->price=12000;
+//        $book->ISBN=45794534;
+//        $book->translators=["الیف شافاک"];
+//        $book->authors=["ارسلان فصیحی"];
+       // $book->save();
 //          return response()->json(Book::where('id',1)->pluck('translators')[0]);
 //        $list=UserAddress::where('postalAddress','LIKE','%پلاک2%')->get();
 //        return $list;

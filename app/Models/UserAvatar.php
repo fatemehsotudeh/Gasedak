@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class UserAvatar extends Model
 {
     //
-    protected $table='userAvatars';
+    protected $table='useravatars';
     protected $fillable = [
         'userId','imagePath'
     ];
