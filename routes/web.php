@@ -17,7 +17,7 @@
 //    return $router->app->version();
 //});
 
-$router->post('/test','TestController@test');
+//$router->post('/test','TestController@test');
 
 
 $router->post('/requestToken','SmsTokenController@requestToken');
@@ -63,6 +63,7 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
 
     $router->post('/searchByLocation','SearchController@searchByLocation');
+    $router->post('/frequentSearches','SearchController@frequentSearches');
 
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
