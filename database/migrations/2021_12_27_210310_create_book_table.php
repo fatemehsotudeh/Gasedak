@@ -30,7 +30,7 @@ class CreateBookTable extends Migration
             $table->integer('volumeCount')->nullable();
             $table->string('publisher')->nullable();
             $table->json('authors');
-            $table->json('translators');
+            $table->json('translators')->nullable();
             $table->string('imagePath')->nullable();
             $table->unsignedBigInteger('categoryId')->nullable();
             $table->unsignedBigInteger('childCategoryId')->nullable();
@@ -39,6 +39,7 @@ class CreateBookTable extends Migration
             $table->decimal('rate',2,1)->nullable();
             $table->string('attachment')->nullable();
             $table->text('description')->nullable();
+            $table->text('hashtags')->nullable();
             //$table->boolean('isCollection')->default(false);
             $table->bigInteger('purchaseCount')->default(0);
             $table->bigInteger('commentCount')->default(0);

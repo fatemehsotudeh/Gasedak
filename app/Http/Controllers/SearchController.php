@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\Category;
 use App\Models\RecentSearch;
 use App\Models\Store;
 use App\Models\StoreAddress;
@@ -69,6 +70,33 @@ class SearchController extends Controller
         }
     }
 
+    public function searchCategory(Request $request)
+    {
+        $category=$request->category;
+
+        //Check that the keyword field is not empty
+        if (empty($category)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the key word field']);
+        }
+
+        try {
+           $category=Category::where('title','like','%'.$category.'%');
+           if ($category->exists()){
+               $categoryId=$category->pluck('id')[0];
+               $books=Book::where('categoryId',$categoryId);
+               if ($books->exists()){
+                   return response()->json(['data' =>$books->get(), 'message' => 'books related to this category were returned'], 200);
+               }else{
+                   return response()->json(['status' =>'error', 'message' => 'no books were found for this category'], 404);
+               }
+           }else{
+               return response()->json(['status' =>'error', 'message' => 'this category does not exist at all'], 404);
+           }
+        }catch (\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+
+    }
     public function saveKeyWord($keyWord,$userId)
     {
         //If the keywords for this user are less than 5, this keyword will be added. Otherwise,
@@ -105,4 +133,6 @@ class SearchController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
+
+
 }

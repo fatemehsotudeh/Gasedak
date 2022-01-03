@@ -39,6 +39,6 @@ class CreateStoreBookTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('storeBooks');
+        Schema::dropIfExists('publishersStoresBooks');
     }
 }

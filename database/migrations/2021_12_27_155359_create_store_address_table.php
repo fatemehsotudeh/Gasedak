@@ -19,7 +19,8 @@ class CreateStoreAddressTable extends Migration
             $table->string('city');
             $table->string('province');
             $table->string('postalCode',10)->nullable();
-            $table->string('postalAddress');
+            $table->string('postalAddress')->nullable();
+            $table->string('postalArea')->nullable();
             $table->string('lat')->nullable();
             $table->string('lng')->nullable();
             $table->timestamps();

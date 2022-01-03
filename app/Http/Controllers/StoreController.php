@@ -14,16 +14,16 @@ class StoreController extends Controller
     {
         $storeId=$request->id;
         try{
-            $store=Store::where('stores.id',$storeId);
+            $publisherStore=Store::where('stores.id',$storeId);
 
-            if ($store->exists()) {
+            if ($publisherStore->exists()) {
                 //When this api is called, the user has visited that store,
                 //so a unit is added to the number of views
-                $viewCount=$store->pluck('viewCount')[0];
+                $viewCount=$publisherStore->pluck('viewCount')[0];
                 $viewCount++;
-                $store->update(['viewCount'=>$viewCount]);
+                $publisherStore->update(['viewCount'=>$viewCount]);
 
-                $storeData=$store->join('storesaddress','storesaddress.storeId','=','stores.id');
+                $storeData=$publisherStore->join('storesaddress','storesaddress.storeId','=','stores.id');
 
                 return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData->get()],200);
             }else{
@@ -36,11 +36,11 @@ class StoreController extends Controller
 
     public function getStoreBooks(Request $request)
     {
-        $storeId=$request->id;
+        $publisherStoreId=$request->id;
         try{
-            $storeData=storeBook::where('storebooks.storeId',$storeId);
-            if ($storeData->exists()) {
-                $storeBooks=$storeData->join('books','books.id','=','storebooks.bookId');
+            $publisherStoreData=storeBook::where('storebooks.storeId',$publisherStoreId);
+            if ($publisherStoreData->exists()) {
+                $storeBooks=$publisherStoreData->join('books','books.id','=','storebooks.bookId');
                 return response()->json(['message'=>'return store books successfully','data'=>$storeBooks->get()],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no books were found for this store'],404);

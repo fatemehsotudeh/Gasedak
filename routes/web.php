@@ -63,7 +63,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
 
     $router->post('/searchByLocation','SearchController@searchByLocation');
+    $router->post('/searchCategory','SearchController@searchCategory');
     $router->post('/frequentSearches','SearchController@frequentSearches');
+
 
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
