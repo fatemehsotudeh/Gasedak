@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\RecentSearch;
 use App\Models\Store;
 use App\Models\StoreAddress;
+use App\Models\UserFavoriteData;
 use Illuminate\Http\Request;
 
 use App\Libraries;
@@ -72,12 +73,17 @@ class SearchController extends Controller
 
     public function searchCategory(Request $request)
     {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
         $category=$request->category;
 
         //Check that the keyword field is not empty
         if (empty($category)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill the key word field']);
+            return response()->json(['status' => 'error', 'message' => 'You must fill the category field']);
         }
+
+        $this->saveKeyWord($category,$identifiedUser->id);
 
         try {
            $category=Category::where('title','like','%'.$category.'%');
@@ -112,7 +118,85 @@ class SearchController extends Controller
                 $recentSearch->where('userId',$userId)->first()->delete();
             }
         }
-        $recentSearch->save();
+        if (!$userKeyWord->where('keyWord',$keyWord)->exists()){
+            $recentSearch->save();
+        }
+    }
+
+    public function searchHashtag(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        $hashtag=$request->hashtag;
+
+        //Check that the keyword field is not empty
+        if (empty($hashtag)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the hashtag field']);
+        }
+
+        $this->saveKeyWord($hashtag,$identifiedUser->id);
+
+        try {
+            $book=Book::where('hashtags','like','%'.$hashtag.'%');
+            $store=Store::where('hashtags','like','%'.$hashtag.'%');
+            $data=[];
+            if ($book->exists()){
+                $books=$book->get();
+                $data['books']=$books;
+            }
+            if ($store->exists()){
+                $stores=$store->get();
+                $data['stores']=$stores;
+            }
+            if (sizeof($data)>0){
+                return response()->json(['data' => $data, 'message' => 'books or stores that had this hashtag were successfully returned'], 200);
+            }else{
+                return response()->json(['status' => 'error', 'message' => 'no book or store with this hashtag was found'], 404);
+            }
+       }catch (\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+       }
+    }
+
+    public function search(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        $keyWord=$request->keyWord;
+
+        //Check that the keyword field is not empty
+        if (empty($keyWord)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the keyWord field']);
+        }
+
+        $this->saveKeyWord($keyWord,$identifiedUser->id);
+
+        try {
+            $book=Book::where('name','like','%'.$keyWord.'%');
+            $store=Store::where('name','like','%'.$keyWord.'%');
+
+            $data=[];
+
+            if ($book->exists()){
+                $books=$book->get();
+                $data['books']=$books;
+            }
+
+            if ($store->exists()){
+                $stores=$store->get();
+                $data['stores']=$stores;
+            }
+
+            if (sizeof($data)>0){
+                return response()->json(['data' => $data, 'message' => 'list of books or bookstores that have this keyword in their name was successfully returned'], 200);
+            }else{
+                return response()->json(['status' => 'error', 'message' => 'could not find book or bookstore with the keyword in its name'], 404);
+            }
+        }catch (\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function frequentSearches(Request $request)
@@ -134,5 +218,18 @@ class SearchController extends Controller
         }
     }
 
+    public function homeAll(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
+        return $this->userExclusiveOffer($identifiedUser->id);
+
+    }
+
+    public function userExclusiveOffer($userId)
+    {
+        return UserFavoriteData::where('userId',$userId)->get();
+    }
 }
