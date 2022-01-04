@@ -110,6 +110,21 @@ class Helper{
         }
     }
 
+    public function splitSentence($sentence,$index)
+    {
+        $delimiter = ' ';
+        $words = explode($delimiter, $sentence);
+
+        return $words[$index];
+    }
+
+    public function splitSentenceAgeRange($sentence,$index)
+    {
+        $delimiter = '(';
+        $words = explode($delimiter, $sentence);
+
+        return $words[$index];
+    }
     public function calculateUserDistanceToBookStores($userLat,$userLng)
     {
         $listLat2=StoreAddress::all()->pluck('lat','id');
