@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\RecentSearch;
 use App\Models\Store;
 use App\Models\StoreAddress;
+use App\Models\storeBook;
 use App\Models\UserFavoriteData;
 use Illuminate\Http\Request;
 
@@ -62,10 +63,51 @@ class SearchController extends Controller
 
             //If the array is empty,show the message that the bookstore could not be found
             if (sizeof($data)==0){
-                return response()->json(['status' => 'error', 'message' => 'No such bookstore was found'], 404);
+                return response()->json(['status' => 'error', 'message' => 'stores not found'], 404);
             }
 
-            return response()->json(['data' => $data, 'message' => 'return stores successfully'], 200);
+            return response()->json(['data' => $data, 'message' => 'stores were successfully returned based on the nearest to the user'], 200);
+        }catch (\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function searchStoreBooks(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        //Get input parameters
+        $storeId=$request->storeId;
+        $keyWord=$request->keyWord;
+
+        //Check that the fields are not empty
+        if (empty($storeId) || empty($keyWord)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
+        }
+
+        $this->saveKeyWord($keyWord,$identifiedUser->id);
+
+        try {
+            $store=storeBook::where('storeId',$storeId);
+            if ($store->exists()){
+                $isOpen=Store::where('id',$storeId)->pluck('isOpen')->first();
+                if ($isOpen==0){
+                    return response()->json(['status' => 'error', 'message' => 'this store is closed'],400);
+                }else{
+                    $storeBooks=$store->join('books','books.id','storebooks.bookId')
+                        ->where('books.name','like','%'.$keyWord.'%');
+
+                    if ($storeBooks->exists()){
+                        $books=$storeBooks->get();
+                        return response()->json(['data' => $books, 'message' => 'return books successfully'],200);
+                    }else{
+                        return response()->json(['status' => 'error', 'message' => 'no books were found for this store with this keyword'],404);
+                    }
+                }
+            }else{
+                return response()->json(['status' => 'error', 'message' => 'bookstore not found with this id'],404);
+            }
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -78,7 +120,7 @@ class SearchController extends Controller
 
         $category=$request->category;
 
-        //Check that the keyword field is not empty
+        //Check that the category field is not empty
         if (empty($category)){
             return response()->json(['status' => 'error', 'message' => 'You must fill the category field']);
         }
@@ -328,4 +370,6 @@ class SearchController extends Controller
         $topStores=Store::orderBy('rate','DESC');
         return $topStores->take(10)->get();
     }
+
+
 }
