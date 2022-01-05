@@ -12,7 +12,7 @@ class StoreController extends Controller
     //
     public function getStoreData(Request $request)
     {
-        $storeId=$request->id;
+        $storeId=$request->storeId;
         try{
             $publisherStore=Store::where('stores.id',$storeId);
 

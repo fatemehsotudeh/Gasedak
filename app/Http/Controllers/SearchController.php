@@ -194,7 +194,7 @@ class SearchController extends Controller
             if (sizeof($data)>0){
                 return response()->json(['data' => $data, 'message' => 'books or stores that had this hashtag were successfully returned'], 200);
             }else{
-                return response()->json(['status' => 'error', 'message' => 'no book or store with this hashtag was found'], 404);
+                return response()->json(['status' => 'error', 'message' => 'no books or stores with this hashtag were found'], 404);
             }
        }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -216,8 +216,15 @@ class SearchController extends Controller
         $this->saveKeyWord($keyWord,$identifiedUser->id);
 
         try {
-            $book=Book::where('name','like','%'.$keyWord.'%');
-            $store=Store::where('name','like','%'.$keyWord.'%');
+            $book=Book::where('name','like','%'.$keyWord.'%')
+                ->orWhere('publisher','like','%'.$keyWord.'%')
+                ->orWhere('authors','like','%'.$keyWord.'%')
+                ->orWhere('translators','like','%'.$keyWord.'%')
+                ->orWhere('ISBN',$keyWord);
+
+            $store=Store::where('name','like','%'.$keyWord.'%')
+                ->orWhere('name','like','%'.$keyWord.'%')
+                ->orWhere('name','like','%'.$keyWord.'%');
 
             $data=[];
 
@@ -234,7 +241,7 @@ class SearchController extends Controller
             if (sizeof($data)>0){
                 return response()->json(['data' => $data, 'message' => 'list of books or bookstores that have this keyword in their name was successfully returned'], 200);
             }else{
-                return response()->json(['status' => 'error', 'message' => 'could not find book or bookstore with the keyword in its name'], 404);
+                return response()->json(['status' => 'error', 'message' => 'could not find book or bookstore with the keyword'], 404);
             }
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -271,7 +278,8 @@ class SearchController extends Controller
         $data['newestBooks']=$this->newestBooks();
         $data['bestSellingBooks']=$this->bestSellingBooks();
         $data['topStores']=$this->topStores();
-
+        $data['mostDiscounts']=$this->mostDiscounts();
+        $data['latestPublications']=$this->latestPublications();
         return $data;
     }
 
@@ -285,7 +293,7 @@ class SearchController extends Controller
         $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
         $data['newestBooks']=$this->newestBooks();
         $data['bestSellingBooks']=$this->bestSellingBooks();
-
+        $data['mostDiscounts']=$this->mostDiscounts();
         return $data;
     }
 
@@ -371,5 +379,44 @@ class SearchController extends Controller
         return $topStores->take(10)->get();
     }
 
+    public function mostDiscounts()
+    {
+        //they are sorted in descending order based on the discount.
+        //if the discount is equal to several things,
+        //they are sorted according to the latest sort.
+        $mostDiscounts=Book::orderBy('percentDiscountAmount','DESC')
+            ->orderBy('created_at','DESC');
 
+        return $mostDiscounts->take(10)->get();
+    }
+
+    public function latestPublications()
+    {
+        $publicationBooks=[];
+
+        $publications=Store::where('kind','انتشارات')
+            ->orderBy('created_at','DESC')
+            ->take(2);
+
+        $publicationsIds=$publications->pluck('id');
+        $publicationsNames=$publications->pluck('name');
+
+        $firstPublicationBooks=storeBook::where('storebooks.storeId',$publicationsIds[0])
+            ->join('books','books.id','storebooks.bookId')
+            ->get();
+
+        $secondPublicationBooks=storeBook::where('storebooks.storeId',$publicationsIds[1])
+            ->join('books','books.id','storebooks.bookId')
+            ->get();
+
+
+        if (!empty($publicationsNames[1])){
+            $data[$publicationsNames[0]]=$firstPublicationBooks;
+            $data[$publicationsNames[1]]=$secondPublicationBooks;
+        }else{
+            $data['firstPublicationBooks']=$firstPublicationBooks;
+            $data['secondPublicationBooks']=$secondPublicationBooks;
+        }
+        return $data;
+    }
 }
