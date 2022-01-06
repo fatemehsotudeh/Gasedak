@@ -23,15 +23,21 @@ class HomeController extends Controller
 
         $data=[];
 
-        $data['banners']=$this->getBanners();
-        $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
-        $data['newestBooks']=$this->newestBooks();
-        $data['bestSellingBooks']=$this->bestSellingBooks();
-        $data['topStores']=$this->topStores();
-        $data['mostDiscounts']=$this->mostDiscounts();
-        $data['latestPublications']=$this->latestPublications();
+        try {
+            $data['banners']=$this->getBanners();
+            $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
+            $data['newestBooks']=$this->newestBooks();
+            $data['bestSellingBooks']=$this->bestSellingBooks();
+            $data['topStores']=$this->topStores();
+            $data['mostDiscounts']=$this->mostDiscounts();
+            $data['latestPublications']=$this->latestPublications();
 
-        return $data;
+            return response()->json(['data' =>$data,'message'=>'return categories and banners successfully'],200);
+
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+
     }
 
     public function homeBook(Request $request)
@@ -42,12 +48,17 @@ class HomeController extends Controller
 
         $data=[];
 
-        $data['banners']=$this->getBanners();
-        $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
-        $data['newestBooks']=$this->newestBooks();
-        $data['bestSellingBooks']=$this->bestSellingBooks();
-        $data['mostDiscounts']=$this->mostDiscounts();
-        return $data;
+        try {
+            $data['banners']=$this->getBanners();
+            $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
+            $data['newestBooks']=$this->newestBooks();
+            $data['bestSellingBooks']=$this->bestSellingBooks();
+            $data['mostDiscounts']=$this->mostDiscounts();
+
+            return response()->json(['data' =>$data,'message'=>'return categories and banners successfully'],200);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
     }
 
     public function userExclusiveOffer($userId)
