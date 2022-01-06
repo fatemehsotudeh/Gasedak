@@ -13,6 +13,12 @@ class StoreController extends Controller
     public function getStoreData(Request $request)
     {
         $storeId=$request->storeId;
+
+        //Check that the storeId field is not empty
+        if (empty($storeId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the storeId field']);
+        }
+
         try{
             $publisherStore=Store::where('stores.id',$storeId);
 

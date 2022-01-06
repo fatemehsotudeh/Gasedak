@@ -67,8 +67,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/searchCategory','SearchController@searchCategory');
     $router->post('/searchHashtag','SearchController@searchHashtag');
     $router->post('/search','SearchController@search');
-    $router->post('/homeAll','SearchController@homeAll');
-    $router->post('/homeBook','SearchController@homeBook');
+    $router->post('/homeAll','HomeController@homeAll');
+    $router->post('/homeBook','HomeController@homeBook');
     $router->post('/frequentSearches','SearchController@frequentSearches');
 
 
