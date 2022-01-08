@@ -47,7 +47,8 @@ class StoreController extends Controller
             $publisherStoreData=storeBook::where('storebooks.storeId',$publisherStoreId);
             if ($publisherStoreData->exists()) {
                 $storeBooks=$publisherStoreData->join('books','books.id','=','storebooks.bookId');
-                return response()->json(['message'=>'return store books successfully','data'=>$storeBooks->get()],200);
+                $storeBooks=$storeBooks->paginate(10);
+                return response()->json(['message'=>'return store books successfully','data'=>$storeBooks],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no books were found for this store'],404);
             }

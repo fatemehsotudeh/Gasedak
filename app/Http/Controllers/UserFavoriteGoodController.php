@@ -59,7 +59,8 @@ class UserFavoriteGoodController extends Controller
         try{
             $userFavoriteList=UserFavoriteGood::where('userId',$identifiedUser->id);
             if($userFavoriteList->exists()){
-               $userFavoriteBooks=$userFavoriteList->join('books','books.id','=','bookId')->get();
+               $userFavoriteBooks=$userFavoriteList->join('books','books.id','=','bookId')
+                   ->paginate(10);
 
                return response()->json(['message'=>'user favorite books returned successfully','data'=>$userFavoriteBooks],200);
             }else{

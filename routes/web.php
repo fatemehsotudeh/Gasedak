@@ -17,7 +17,7 @@
 //    return $router->app->version();
 //});
 
-//$router->post('/test','TestController@test');
+$router->post('/test','TestController@test');
 
 
 $router->post('/requestToken','SmsTokenController@requestToken');

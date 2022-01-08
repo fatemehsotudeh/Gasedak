@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\TicketStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class Helper{
     public function generateRandomDigitsCode($length)
@@ -163,5 +164,20 @@ class Helper{
         asort($distances);
 
         return $distances;
+    }
+
+    public function paginate($request,$collection,$perPage=10)
+    {
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 10;
+        $offset = ($currentPage * $perPage) - $perPage;
+
+        $currentPageResults = $collection->slice($offset, $perPage)->all();
+
+        $paginatedItems = new LengthAwarePaginator($currentPageResults, count($collection), $perPage);
+
+        $paginatedItems->setPath($request->url());
+
+        return $paginatedItems;
     }
 };
