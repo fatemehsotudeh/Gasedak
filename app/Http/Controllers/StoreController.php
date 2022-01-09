@@ -20,16 +20,16 @@ class StoreController extends Controller
         }
 
         try{
-            $publisherStore=Store::where('stores.id',$storeId);
+            $store=Store::where('stores.id',$storeId);
 
-            if ($publisherStore->exists()) {
+            if ($store->exists()) {
                 //When this api is called, the user has visited that store,
                 //so a unit is added to the number of views
-                $viewCount=$publisherStore->pluck('viewCount')[0];
+                $viewCount=$store->pluck('viewCount')[0];
                 $viewCount++;
-                $publisherStore->update(['viewCount'=>$viewCount]);
+                $store->update(['viewCount'=>$viewCount]);
 
-                $storeData=$publisherStore->join('storesaddress','storesaddress.storeId','=','stores.id');
+                $storeData=$store->join('storesaddress','storesaddress.storeId','=','stores.id');
 
                 return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData->get()],200);
             }else{

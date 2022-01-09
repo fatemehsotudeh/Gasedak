@@ -15,7 +15,7 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-        return Book::paginate(10);
+//        return Book::paginate(10);
 //        $translator=$request->translators;
 //        $authors=$request->authors;
 //        $book=new Book();

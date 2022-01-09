@@ -56,6 +56,7 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getAllNotifications','NotificationController@getAllNotifications');
     $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
     $router->post('/getStoreData','StoreController@getStoreData');
+    $router->post('/getBookData','BookController@getBookData');
     $router->post('/getStoreBooks','StoreController@getStoreBooks');
     $router->post('/addToFavList','UserFavoriteGoodController@addToFavList');
     $router->post('/getFavoriteList','UserFavoriteGoodController@getFavoriteList');
