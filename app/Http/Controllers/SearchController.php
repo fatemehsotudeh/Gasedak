@@ -44,8 +44,7 @@ class SearchController extends Controller
                 foreach ($distances as $id=>$distance){
                     $data[]=StoreAddress::where('storesaddress.id',$id)
                         ->join('stores','stores.id','storesaddress.storeId')
-                        ->first();
-
+                        ->first()->makeHidden(['email','password','IBAN','username']);
                 }
             }else{
                 //save keyWord in recent search table
@@ -58,7 +57,7 @@ class SearchController extends Controller
                 foreach ($distances as $id => $distance){
                     $data[]=StoreAddress::where('storesaddress.id',$id)
                         ->join('stores','stores.id','storesaddress.storeId')
-                        ->first();
+                        ->first()->makeHidden(['email','password','IBAN','username']);
                 }
             }
 
@@ -67,8 +66,11 @@ class SearchController extends Controller
             }
 
             //paginate: using helper class
+
             $collectionData=collect($data);
             $paginateItems=$helper->paginate($request,$collectionData);
+
+//            $paginateItems['data']=array_values($paginateItems->toArray()['data']);
 
             return response()->json(['data' => $paginateItems, 'message' => 'stores were successfully returned based on the nearest to the user'], 200);
         }catch (\Exception $e){

@@ -7,6 +7,7 @@ namespace App\Libraries;
 use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\TicketStatus;
+use http\Env\Request;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -169,10 +170,10 @@ class Helper{
     public function paginate($request,$collection,$perPage=10)
     {
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $perPage = 10;
+        $perPage = 5;
         $offset = ($currentPage * $perPage) - $perPage;
 
-        $currentPageResults = $collection->slice($offset, $perPage)->all();
+        $currentPageResults = array_values($collection->slice($offset, $perPage)->all());
 
         $paginatedItems = new LengthAwarePaginator($currentPageResults, count($collection), $perPage);
 
