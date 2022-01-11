@@ -19,6 +19,9 @@ class CreateBannerTable extends Migration
             $table->string('keyWord')->nullable();
             $table->string('image')->nullable();
             $table->timestamps();
+
+            $table->charset='utf8';
+            $table->collation='utf8_general_ci';
         });
     }
 

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\Comment;
 use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\storeBook;
+use http\Client\Curl\User;
 use Illuminate\Http\Request;
 
 use App\Libraries;
@@ -15,6 +17,8 @@ class BookController extends Controller
     //
     public function getBookData(Request $request)
     {
+        $helper=new Libraries\Helper();
+
         //Get input information
         $bookId=$request->bookId;
         $userLat=$request->lat;
@@ -27,11 +31,12 @@ class BookController extends Controller
 
         try {
             $book=Book::where('id',$bookId);
+
             if ($book->exists()){
                 //get book data
                 $data=$book->first();
 
-                //find stores that have this book
+                // find stores that have this book
                 $bookName=$data['name'];
                 $storesLatAndLng=$this->findStoresWithThisBook($bookName);
                 $distancesAndIds=$this->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
@@ -39,12 +44,36 @@ class BookController extends Controller
 
                 $data['stores']=$this->paginateStores($request,$stores);
 
-                //get book comments
+                // get book comments
+                $comments=Comment::where([
+                    ['bookId',$bookId],
+                    ['isApproved',1]
+                ]);
 
-                //Increase the number of views of this book
+                $userComment=$comments->select('comments.*','users.firstname','users.lastname')
+                    ->join('users','users.id','comments.userId')
+                    ->get();
+
+                $paginatedComments=$helper->paginate($request,$userComment);
+                $data['comments']=$paginatedComments;
+
+
+                // increase the number of views of this book
                 $viewCount=$book->pluck('viewCount')[0];
                 $viewCount++;
-                $book->update(['viewCount'=>$viewCount]);
+
+                // update comment number
+                $commentCount=$comments->count('comments.id');
+
+                // update book rate
+                $bookRate=Comment::where('bookId',$bookId)
+                    ->average('rate');
+
+                $book->update([
+                    'viewCount'=> $viewCount,
+                    'commentCount'=> $commentCount,
+                    'rate'=> $bookRate
+                ]);
 
                 return response()->json(['data'=>$data,'message'=>'return books data successfully'],200);
             }else{
@@ -53,7 +82,6 @@ class BookController extends Controller
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
-
     }
 
     public function findStoresWithThisBook($bookName)
