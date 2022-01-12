@@ -8,4 +8,8 @@ class Comment extends Model
 {
     //
     protected $table='comments';
+
+    protected $fillable=[
+      'bookId','userId','message','rate'
+    ];
 }

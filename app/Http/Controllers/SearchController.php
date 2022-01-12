@@ -7,7 +7,7 @@ use App\Models\Category;
 use App\Models\RecentSearch;
 use App\Models\Store;
 use App\Models\StoreAddress;
-use App\Models\storeBook;
+use App\Models\StoreBook;
 
 use Illuminate\Http\Request;
 
@@ -96,7 +96,7 @@ class SearchController extends Controller
         $this->saveKeyWord($keyWord,$identifiedUser->id);
 
         try {
-            $store=storeBook::where('storeId',$storeId);
+            $store=StoreBook::where('storeId',$storeId);
             if ($store->exists()){
                 $isOpen=Store::where('id',$storeId)->pluck('isOpen')->first();
                 if ($isOpen==0){

@@ -72,6 +72,7 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/homeBook','HomeController@homeBook');
     $router->post('/frequentSearches','SearchController@frequentSearches');
 
+    $router->post('/sendComment','CommentController@sendComment');
 
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');

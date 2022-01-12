@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\Store;
-use App\Models\storeBook;
+use App\Models\StoreBook;
 use Illuminate\Http\Request;
 
 class StoreController extends Controller
@@ -31,7 +31,7 @@ class StoreController extends Controller
 
                 $storeData=$store->join('storesaddress','storesaddress.storeId','=','stores.id');
 
-                return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData->get()],200);
+                return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData->first()],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no store found with this id'],404);
             }
@@ -44,7 +44,7 @@ class StoreController extends Controller
     {
         $publisherStoreId=$request->id;
         try{
-            $publisherStoreData=storeBook::where('storebooks.storeId',$publisherStoreId);
+            $publisherStoreData=StoreBook::where('storebooks.storeId',$publisherStoreId);
             if ($publisherStoreData->exists()) {
                 $storeBooks=$publisherStoreData->join('books','books.id','=','storebooks.bookId');
                 $storeBooks=$storeBooks->paginate(10);
