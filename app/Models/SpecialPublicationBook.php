@@ -4,16 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class UserFavoriteGood extends Model
+class SpecialPublicationBook extends Model
 {
     //
-    protected $table='userfavoritegoods';
-    protected $fillable = [
-        'userId','bookId'
-    ];
+    protected $table='specialpublicationbooks';
 
     protected $casts=[
         'translators'=> 'array',
         'authors'=>'array'
     ];
+
 }

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Banner;
 use App\Models\Book;
 use App\Models\Category;
+use App\Models\GasedakSuggestion;
+use App\Models\SpecialPublicationBook;
 use App\Models\Store;
 use App\Models\storeBook;
 use App\Models\UserFavoriteData;
@@ -30,6 +32,7 @@ class HomeController extends Controller
             $data['bestSellingBooks']=$this->bestSellingBooks();
             $data['topStores']=$this->topStores();
             $data['mostDiscounts']=$this->mostDiscounts();
+            $data['gasedakOffers']=$this->getGasedakOffers();
             $data['latestPublications']=$this->latestPublications();
 
             return response()->json(['data' =>$data,'message'=>'return categories and banners successfully'],200);
@@ -54,11 +57,36 @@ class HomeController extends Controller
             $data['newestBooks']=$this->newestBooks();
             $data['bestSellingBooks']=$this->bestSellingBooks();
             $data['mostDiscounts']=$this->mostDiscounts();
+            $data['gasedakOffers']=$this->getGasedakOffers();
+            $data['specialPublicationBooks']=$this->getSpecialPublicationBooks();
 
             return response()->json(['data' =>$data,'message'=>'return categories and banners successfully'],200);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
+    }
+
+    public function getSpecialPublicationBooks()
+    {
+        //get special publication data
+        $specialPublication=SpecialPublicationBook::join('stores','stores.id','specialpublicationbooks.specialPublicationId')
+            ->orderBy('specialpublicationbooks.created_at','DESC')
+            ->first()
+            ->makeHidden([
+                'email',
+                'password',
+                'phoneNumber',
+                'IBAN'
+            ]);
+
+        //get publication books data
+        $specialPublication['publicationBooks']=SpecialPublicationBook::where('specialPublicationId',$specialPublication->id)
+            ->join('books','books.id','specialpublicationbooks.bookId')
+            ->orderBy('specialpublicationbooks.created_at','DESC')
+            ->take(10)
+            ->get();
+
+        return $specialPublication;
     }
 
     public function userExclusiveOffer($userId)
@@ -139,7 +167,7 @@ class HomeController extends Controller
 
     public function topStores()
     {
-        $topStores=Store::orderBy('rate','DESC');
+        $topStores=Store::orderBy('purchaseCount','DESC');
         return $topStores->take(10)->get();
     }
 
@@ -152,6 +180,14 @@ class HomeController extends Controller
             ->orderBy('created_at','DESC');
 
         return $mostDiscounts->take(10)->get();
+    }
+
+    public function getGasedakOffers()
+    {
+        return GasedakSuggestion::join('books','books.id','ghasedaksuggestions.bookId')
+            ->orderBy('ghasedaksuggestions.created_at','DESC')
+            ->take(10)
+            ->get();
     }
 
     public function latestPublications()

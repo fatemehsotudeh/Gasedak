@@ -4,8 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class storeBook extends Model
+class StoreBook extends Model
 {
     //
     protected $table='storebooks';
+
+    protected $casts=[
+        'translators'=> 'array',
+        'authors'=>'array'
+    ];
 }
