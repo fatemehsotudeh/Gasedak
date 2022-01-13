@@ -8,7 +8,7 @@ use App\Models\Category;
 use App\Models\GasedakSuggestion;
 use App\Models\SpecialPublicationBook;
 use App\Models\Store;
-use App\Models\storeBook;
+use App\Models\StoreBook;
 use App\Models\UserFavoriteData;
 use Illuminate\Http\Request;
 
@@ -27,12 +27,12 @@ class HomeController extends Controller
 
         try {
             $data['banners']=$this->getBanners();
-            $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
-            $data['newestBooks']=$this->newestBooks();
-            $data['bestSellingBooks']=$this->bestSellingBooks();
-            $data['topStores']=$this->topStores();
-            $data['mostDiscounts']=$this->mostDiscounts();
+            $data['userExclusiveOffers']=$this->getUserExclusiveOffer($identifiedUser->id)->take(10)->values();
+            $data['newestBooks']=$this->getNewestBooks();
+            $data['bestSellingBooks']=$this->getBestSellingBooks();
             $data['gasedakOffers']=$this->getGasedakOffers();
+            $data['topStores']=$this->getTopStores();
+            $data['mostDiscounts']=$this->getMostDiscounts();
             $data['latestPublications']=$this->latestPublications();
 
             return response()->json(['data' =>$data,'message'=>'return categories and banners successfully'],200);
@@ -53,10 +53,10 @@ class HomeController extends Controller
 
         try {
             $data['banners']=$this->getBanners();
-            $data['userExclusiveOffers']=$this->userExclusiveOffer($identifiedUser->id)->take(10)->values();
-            $data['newestBooks']=$this->newestBooks();
-            $data['bestSellingBooks']=$this->bestSellingBooks();
-            $data['mostDiscounts']=$this->mostDiscounts();
+            $data['userExclusiveOffers']=$this->getUserExclusiveOffer($identifiedUser->id)->take(10)->values();
+            $data['newestBooks']=$this->getNewestBooks();
+            $data['bestSellingBooks']=$this->getBestSellingBooks();
+            $data['mostDiscounts']=$this->getMostDiscounts();
             $data['gasedakOffers']=$this->getGasedakOffers();
             $data['specialPublicationBooks']=$this->getSpecialPublicationBooks();
 
@@ -75,8 +75,8 @@ class HomeController extends Controller
             ->makeHidden([
                 'email',
                 'password',
-                'phoneNumber',
-                'IBAN'
+                'IBAN',
+                'username'
             ]);
 
         //get publication books data
@@ -89,7 +89,7 @@ class HomeController extends Controller
         return $specialPublication;
     }
 
-    public function userExclusiveOffer($userId)
+    public function getUserExclusiveOffer($userId)
     {
         $helper=new Libraries\Helper();
 
@@ -153,33 +153,33 @@ class HomeController extends Controller
         }
     }
 
-    public function newestBooks()
+    public function getNewestBooks()
     {
-        $newest=Book::orderBy('created_at','DESC');
-        return $newest->take(10)->get();
+        return Book::orderBy('created_at','DESC')
+            ->take(10)->get();
     }
 
-    public function bestSellingBooks()
+    public function getBestSellingBooks()
     {
-        $bestSelling=Book::orderBy('purchaseCount','DESC');
-        return $bestSelling->take(10)->get();
+        return Book::orderBy('purchaseCount','DESC')
+            ->take(10)->get();
     }
 
-    public function topStores()
+    public function getTopStores()
     {
-        $topStores=Store::orderBy('purchaseCount','DESC');
-        return $topStores->take(10)->get();
+        return Store::orderBy('purchaseCount','DESC')
+            ->take(10)->get();
     }
 
-    public function mostDiscounts()
+    public function getMostDiscounts()
     {
         //they are sorted in descending order based on the discount.
         //if the discount is equal to several things,
         //they are sorted according to the latest sort.
-        $mostDiscounts=Book::orderBy('percentDiscountAmount','DESC')
-            ->orderBy('created_at','DESC');
-
-        return $mostDiscounts->take(10)->get();
+        return Book::orderBy('percentDiscountAmount','DESC')
+            ->orderBy('created_at','DESC')
+            ->take(10)
+            ->get();
     }
 
     public function getGasedakOffers()
@@ -198,34 +198,28 @@ class HomeController extends Controller
             ->orderBy('created_at','DESC')
             ->take(2);
 
+        //get newest publications id
         $publicationsIds=$publications->pluck('id');
-        $publicationsNames=$publications->pluck('name');
 
-        $firstPublicationBooks=storeBook::where('storebooks.storeId',$publicationsIds[0])
-            ->join('books','books.id','storebooks.bookId')
-            ->get();
+        $index=0;
+        foreach ($publications->get()->toArray() as $publication){
+            $firstPublicationBooks=StoreBook::where('storebooks.storeId',$publicationsIds[$index])
+                ->join('books','books.id','storebooks.bookId')
+                ->orderBy('books.created_at','DESC')
+                ->take(10)
+                ->get();
 
-        $secondPublicationBooks=storeBook::where('storebooks.storeId',$publicationsIds[1])
-            ->join('books','books.id','storebooks.bookId')
-            ->get();
-
-
-        if (!empty($publicationsNames[1])){
-            $data[$publicationsNames[0]]=$firstPublicationBooks;
-            $data[$publicationsNames[1]]=$secondPublicationBooks;
-        }else{
-            $data['firstPublicationBooks']=$firstPublicationBooks;
-            $data['secondPublicationBooks']=$secondPublicationBooks;
+            $publicationBooks[$index]=$publications->get()[$index];
+            $publicationBooks[$index]['books']=$firstPublicationBooks;
+            $index++;
         }
-        return $data;
+        return $publicationBooks;
     }
 
     public function getBanners()
     {
-        $banners=Banner::orderBy('created_at','DESC')
+        return Banner::orderBy('created_at','DESC')
             ->take(10)
             ->get();
-
-        return $banners;
     }
 }
