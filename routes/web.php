@@ -59,9 +59,11 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getBookData','BookController@getBookData');
     $router->post('/getStoreBooks','StoreController@getStoreBooks');
     $router->post('/addToFavList','UserFavoriteGoodController@addToFavList');
+    $router->post('/deleteFromFavList','UserFavoriteGoodController@deleteFromFavList');
     $router->post('/getFavoriteList','UserFavoriteGoodController@getFavoriteList');
     $router->post('/addUserFavoriteData','UserFavoriteDataController@addUserFavoriteData');
-    $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
+    $router->post('/getUserFavoriteData','UserFavoriteDataController@getUserFavoriteData');
+   // $router->post('/editUserFavoriteData','UserFavoriteDataController@editUserFavoriteData');
 
     $router->post('/searchByLocation','SearchController@searchByLocation');
     $router->post('/searchStoreBooks','SearchController@searchStoreBooks');

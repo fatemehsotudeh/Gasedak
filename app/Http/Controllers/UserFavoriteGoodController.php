@@ -50,6 +50,38 @@ class UserFavoriteGoodController extends Controller
         }
     }
 
+    public function deleteFromFavList(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        $bookId=$request->bookId;
+
+        if (empty($bookId)){
+            return response()->json(['status' => 'error', 'message' => 'The book id field can not be empty']);
+        }
+
+        try {
+            $userFavoriteGood=new UserFavoriteGood();
+            $userFavoriteGood->userId=$identifiedUser->id;
+
+            if (Book::where('id',$bookId)->exists()){
+                $userFavoriteGood->bookId=$bookId;
+                $userFavoriteBook=UserFavoriteGood::where([['bookId',$bookId],['userId',$identifiedUser->id]]);
+                if ($userFavoriteBook->exists()){
+                    $userFavoriteBook->delete();
+                    return response()->json(['message' => 'the book was removed from the favorites list'], 200);
+                }else{
+                    return response()->json(['status' => 'error', 'message' => 'This book is not in the user\'s favorite list at all'], 400);
+                }
+            }else{
+                return response()->json(['status' => 'error', 'message' => 'no books were found with this id'], 404);
+            }
+        }catch (\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
     public function getFavoriteList(Request $request)
     {
         //decode bearer token
