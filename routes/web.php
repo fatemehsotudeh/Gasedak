@@ -76,6 +76,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
 
     $router->post('/sendComment','CommentController@sendComment');
 
+
+    $router->post('/addToCart','CartController@addToCart');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 

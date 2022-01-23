@@ -127,6 +127,7 @@ class Helper{
 
         return $words[$index];
     }
+
     public function calculateUserDistanceToBookStores($userLat,$userLng)
     {
         $listLat2=StoreAddress::all()->pluck('lat','id');
@@ -181,4 +182,5 @@ class Helper{
 
         return $paginatedItems;
     }
+
 };
