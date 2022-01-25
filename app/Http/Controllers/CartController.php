@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Book;
-use App\Models\Cart;
+
 use App\Models\CartHelper;
-use App\Models\CartItem;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 use App\Libraries;
@@ -57,9 +56,14 @@ class CartController extends Controller
         //Otherwise a new cart will be created for the store
         try{
             $checkInventory=$cartHelper->checkInventory();
+
             if ($checkInventory){
                 $resultStoreInCart=$cartHelper->checkStoreInCart();
-                return $cartHelper->createOrUpdateCart($resultStoreInCart);
+                if ($cartHelper->createOrUpdateCart($resultStoreInCart)){
+                    return response()->json(['message' => 'add book to cart successfully'],200);
+                }else{
+                    return response()->json(['status'=>'error','message' => 'this book has already been added to the cart'],409);
+                }
             }else{
                 return response()->json(['status'=>'error','message'=>'The stock of this book is zero and it is not possible to add it to the cart'],400);
             }
@@ -68,60 +72,77 @@ class CartController extends Controller
         }
     }
 
-//    public function getBookPrice($bookId)
-//    {
-//        return Book::where('id',$bookId)->pluck('price');
-//    }
+    public function getCartData(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
-//    public function getBookDiscount($bookId)
-//    {
-//        //check Daily discount
-//        $discountAmount=$this->getDailyDiscount($bookId);
-//        if ($discountAmount==0){
-//            //get normal discount
-//            $discountAmount=$this->getNormalDiscount($bookId);
-//        }
-//        return $discountAmount;
-//    }
+        //get cart data
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->userId=$identifiedUser->id;
 
-//    public function getDailyDiscount($bookId)
-//    {
-//        $book=Book::where('id',$bookId);
-//        $dailyDiscount=$book->pluck('dailyDiscount');
-//        $dailyDiscountExpDate=$book->pluck('dailyDiscountExpDate');
-//
-//        if ($dailyDiscount!=0){
-//            //check exp date
-//            if ($this->checkDailyDiscountExpDate($bookId,$dailyDiscountExpDate)){
-//                return $dailyDiscount;
-//            }else{
-//                return 0;
-//            }
-//        }else{
-//            return 0;
-//        }
-//    }
+        try{
+            $carts=$cartHelper->checkAndGetCartsData();
+            $paginatedCarts=$helper->paginate($request,$carts);
+            return response()->json(['data'=> $paginatedCarts,'message' => 'return cart data successfully'],200);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
 
-//    public function checkDailyDiscountExpDate($bookId,$expDate)
-//    {
-//        $currentDate=$this->getCurrentTimeStamp();
-//        if ($expDate<$currentDate){
-//            return true;
-//        }else{
-//            return false;
-//        }
-//    }
+    public function changeBookCount(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
-//    public function getCurrentTimeStamp()
-//    {
-//        date_default_timezone_set('Asia/Tehran');
-//        return date('Y-m-d H:i:s');
-//    }
-//
-//    public function getNormalDiscount($bookId)
-//    {
-//        return Book::where('id',$bookId)
-//            ->pluck('discountAmount');
-//    }
+        //get inputs
+        $cartId=$request->cartId;
+        $bookId=$request->bookId;
+        $count=$request->count;
+
+        //Check that the inputs are not empty
+        if (empty($cartId) || empty($bookId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
+        }
+
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->userId=$identifiedUser->id;
+        $cartHelper->cartId=$cartId;
+        $cartHelper->bookId=$bookId;
+
+        //Check the existence of the cart with this id
+        $cart=$cartHelper->checkExistenceCart();
+        if (!$cart){
+            return response()->json(['status'=>'error','message'=>'no cart was found with this id'],404);
+        }
+
+        //Check the availability of this book in the cart
+        $book=$cartHelper->checkExistenceBookInCart();
+        if (!$book){
+            return response()->json(['status'=>'error','message'=>'no book with this id was found in this cart'],404);
+        }
+
+        try{
+            if ($count==0){
+                //delete book from cart
+                $cartHelper->deleteCartItem();
+            }else{
+                //update book quantity
+                $result=$cartHelper->updateBookQuantity($count);
+                if(!$result){
+                    return response()->json(['status'=>'error','message' => 'The number selected is more than the book stock'],400);
+                }
+            }
+            $cart=$cartHelper->checkAndGetCartData();
+            return response()->json(['data'=> $cart,'message' => 'change book count successfully'],200);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+
+    }
 
 }

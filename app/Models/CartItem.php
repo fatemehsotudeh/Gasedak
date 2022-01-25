@@ -8,4 +8,8 @@ class CartItem extends Model
 {
     //
     protected $table='cartitems';
+    protected $casts=[
+        'translators'=> 'array',
+        'authors'=>'array'
+    ];
 }

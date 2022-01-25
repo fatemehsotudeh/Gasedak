@@ -4,16 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use App\Libraries;
+
 class CartHelper extends Model
 {
     //
     protected $fillable=[
-        'userId','bookId','storeId'
+        'userId','bookId','storeId','cartId'
     ];
 
     public function checkExistenceStore()
     {
         if(Store::where('id',$this->storeId)->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function checkExistenceCart()
+    {
+        if(Cart::where('id',$this->cartId)->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function checkExistenceBookInCart()
+    {
+        if(CartItem::where([['cartId',$this->cartId],['bookId',$this->bookId]])->exists()){
             return true;
         }else{
             return false;
@@ -31,7 +51,7 @@ class CartHelper extends Model
 
     public function checkExistenceBookStore()
     {
-        if(StoreBook::where([['storeId',$this->storeId],['bookId',$this->bookId]])->exists()){
+        if(Book::where([['storeId',$this->storeId],['id',$this->bookId]])->exists()){
             return true;
         }else{
             return false;
@@ -97,14 +117,17 @@ class CartHelper extends Model
         if ($resultStoreInCart){
             $resultBookInCart=$this->checkBookInCart();
             if ($resultBookInCart){
-                return response()->json(['status'=>'error','message' => 'this book has already been added to the cart'],409);
+                return false;
             }else{
                 $this->updateCart();
-                return response()->json(['message' => 'add book to cart successfully'],200);
+                $this->updateOrderDate();
+                return true;
+
             }
         }else{
             $this->createNewCart();
-            return response()->json(['message' => 'add book to cart successfully'],200);
+            $this->createOrderForCart();
+            return true;
         }
     }
 
@@ -131,5 +154,289 @@ class CartHelper extends Model
     public function getBookInventory()
     {
         return Book::where('id',$this->bookId)->pluck('inventory')[0];
+    }
+
+    public function getBookPrice()
+    {
+        return Book::where('id',$this->bookId)->pluck('price')[0];
+    }
+
+    public function createOrderForCart()
+    {
+        $orderHelper=new OrderHelper();
+        $orderHelper->userId=$this->userId;
+        $orderHelper->storeId=$this->storeId;
+        $orderHelper->createOrder();
+    }
+
+    public function updateOrderDate()
+    {
+        $helper=new Libraries\Helper();
+
+        $order=new Order();
+        $orderDate=$helper->getCurrentDate();
+        $cartId=$this->getCartId();
+
+        $order->where('id',$cartId)
+            ->update(['orderDate'=>$orderDate]);
+    }
+
+    public function checkAndGetCartsData()
+    {
+        $userCartsId=$this->getUserCartsId();
+        foreach ($userCartsId as $cartId){
+            $this->cartId=$cartId;
+            $this->checkAndUpdateCartItem();
+            $this->updateCartQPD();
+        }
+        return $this->getCartLists();
+    }
+
+    public function checkAndGetCartData()
+    {
+        $this->checkAndUpdateCartItem();
+        $this->updateCartQPD();
+        return $this->getCartItems();
+    }
+
+    public function getCartItems()
+    {
+        $cart=Cart::where('carts.id',$this->cartId)
+            ->join('stores','stores.id','carts.storeId')
+            ->Join('orders','orders.id','carts.id')
+            ->select('carts.*','orders.orderDate','orders.trackingCode','stores.name')
+            ->first();
+
+        $cart['books']=$this->getCartItemData();
+
+        foreach ($cart['books']->toArray() as $index=>$book){
+            $this->bookId=$book['id'];
+            $cart['books'][$index]['images']=$this->getBookImages();
+        }
+
+        return $cart;
+    }
+
+    public function getCartLists()
+    {
+       $carts=Cart::where('carts.userId',$this->userId)
+           ->join('stores','stores.id','carts.storeId')
+           ->Join('orders','orders.id','carts.id')
+           ->select('carts.*','orders.orderDate','orders.trackingCode','stores.name')
+           ->get();
+
+       foreach ($carts->toArray() as $key=>$cart){
+           $this->cartId=$cart['id'];
+
+           $carts[$key]['books']=$this->getCartItemData();
+
+           foreach ($carts[$key]['books']->toArray() as $index=>$book){
+               $this->bookId=$book['id'];
+               $carts[$key]['books'][$index]['images']=$this->getBookImages();
+           }
+       }
+
+        return $carts;
+    }
+
+    public function getBookImages()
+    {
+        return BookImage::where('bookId',$this->bookId)->get();
+    }
+
+    public function getCartItemData()
+    {
+        return CartItem::where('cartId',$this->cartId )
+            ->join('books','books.id','cartitems.bookId')
+            ->select('cartitems.*','books.name','books.publisher','books.authors')
+            ->get();
+    }
+
+    public function getUserCartsId()
+    {
+        return Cart::where('userId',$this->userId)
+            ->pluck('id');
+    }
+
+    public function checkAndUpdateCartItem()
+    {
+       $bookIds=$this->getCartItemsBookId();
+       $cartItemsQuantity=$this->getCartItemsQuantity();
+
+       foreach ($bookIds as $key => $bookId){
+           $this->bookId=$bookId;
+           $bookInventory=$this->getBookInventory();
+           $bookQuantity=$cartItemsQuantity[$key];
+
+           $flag=0;
+           if ($bookInventory==0){
+               //delete this book from cart item
+               $this->deleteCartItem();
+               $flag=1;
+           }elseif($bookQuantity>$bookInventory){
+               $quantity=$bookInventory;
+           }else{
+               $quantity=$bookQuantity;
+           }
+
+           if ($flag!=1){
+               $this->updateCartItemQPD($quantity);
+           }
+       }
+
+        $isCartEmpty=$this->checkCartEmpty();
+        if ($isCartEmpty){
+            $this->deleteCart();
+            $this->deleteOrderWithCartEmpty();
+        }
+    }
+
+    public function updateCartQPD()
+    {
+        Cart::where([
+            ['id',$this->cartId],
+        ])->update([
+            'totalQuantity'=> $this->calculateTotalQuantity(),
+            'totalPrice'=>$this->calculateTotalPrice(),
+            'totalDiscountAmount'=>$this->calculateTotalDiscount()
+        ]);
+    }
+
+    public function calculateTotalPrice()
+    {
+        return CartItem::where('cartId',$this->cartId)
+            ->sum(CartItem::raw('price * quantity'));
+    }
+
+    public function calculateTotalDiscount()
+    {
+        return CartItem::where('cartId',$this->cartId)
+            ->sum(CartItem::raw('discountAmount * quantity'));
+    }
+
+    public function calculateTotalQuantity()
+    {
+        return CartItem::where('cartId',$this->cartId)
+            ->sum('quantity');
+    }
+
+    public function getCartItemsBookId()
+    {
+        return CartItem::where('cartId',$this->cartId)
+            ->pluck('bookId');
+    }
+
+    public function getCartItemsQuantity()
+    {
+        return CartItem::where('cartId',$this->cartId)
+            ->pluck('quantity');
+    }
+
+    public function deleteCartItem()
+    {
+        CartItem::where([
+            ['cartId', $this->cartId],
+            ['bookId', $this->bookId]
+        ])->delete();
+    }
+
+    public function checkCartEmpty()
+    {
+        if (!CartItem::where('cartId',$this->cartId)->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function deleteCart()
+    {
+        Cart::where('id',$this->cartId)->delete();
+    }
+
+    public function updateBookQuantity($count)
+    {
+        $bookInventory=$this->getBookInventory();
+
+        if($bookInventory==0){
+            //delete book from cart
+            $this->deleteCartItem();
+            return true;
+        }elseIf($bookInventory<$count){
+            return false;
+        }else{
+            $this->updateCartItemQPD($count);
+            return true;
+        }
+    }
+
+    public function deleteOrderWithCartEmpty()
+    {
+        $orderHelper=new OrderHelper();
+        $orderHelper->cartId=$this->cartId;
+
+        $orderHelper->deleteOrder();
+    }
+
+    public function updateCartItemQPD($quantity)
+    {
+        CartItem::where([
+            ['cartId',$this->cartId],
+            ['bookId',$this->bookId]
+        ])->update([
+            'quantity'=> $quantity,
+            'price'=>$this->getBookPrice(),
+            'discountAmount'=>$this->getBookDiscount()
+        ]);
+    }
+
+    public function getBookDiscount()
+    {
+        //check Daily discount
+        $result=$this->getDailyDiscount();
+        if ($result=='no daily discount'){
+            //get normal discount
+            $discountAmount=$this->getNormalDiscount();
+        }else{
+            $discountAmount=$result;
+        }
+        return $discountAmount;
+    }
+
+    public function getDailyDiscount()
+    {
+        $book=Book::where('id',$this->bookId);
+        $hasDailyDiscount=$book->pluck('isDailyDiscount')[0];
+        $expDate=$book->pluck('dailyDiscountExpDate')[0];
+
+        if ($hasDailyDiscount){
+            //check exp date
+            if (!$this->checkDailyDiscountExpDate($expDate)){
+                return $book->pluck('discountAmount')[0];
+            }else{
+                //has daily discount but expired
+                return 0;
+            }
+        }else{
+            return 'no daily discount';
+        }
+    }
+
+    public function checkDailyDiscountExpDate($expDate)
+    {
+        $helper=new Libraries\Helper();
+
+        $currentDate=$helper->getCurrentDate();
+        if ($expDate<$currentDate){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function getNormalDiscount()
+    {
+        return Book::where('id',$this->bookId)
+            ->pluck('discountAmount')[0];
     }
 }

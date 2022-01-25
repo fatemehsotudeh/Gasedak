@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateStoreBookTable extends Migration
+class DropStoreBookTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,21 @@ class CreateStoreBookTable extends Migration
      */
     public function up()
     {
-        Schema::create('storeBooks', function (Blueprint $table) {
+        Schema::table('storeBooks', function (Blueprint $table) {
+            //
+            Schema::dropIfExists('storeBooks');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::table('storeBooks', function (Blueprint $table) {
+            //
             $table->id();
             $table->unsignedBigInteger('storeId');
             $table->unsignedBigInteger('bookId');
@@ -26,19 +40,6 @@ class CreateStoreBookTable extends Migration
             $table->foreign('bookId')
                 ->references('id')
                 ->on('books');
-
-            $table->charset='utf8';
-            $table->collation='utf8_general_ci';
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        Schema::dropIfExists('storeBooks');
     }
 }

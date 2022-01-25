@@ -86,16 +86,9 @@ class BookController extends Controller
 
     public function findStoresWithThisBook($bookName)
     {
-        $booksId=Book::where([['name',$bookName]])->pluck('id');
+        $storeIds=Book::where([['name',$bookName]])->pluck('storeId');
 
-        $storeIds=[];
-        foreach ($booksId as $bookId){
-            $ids=storeBook::where('bookId',$bookId)->pluck('storeId');
-            foreach ($ids as $storeId){
-                array_push($storeIds,$storeId);
-            }
-        }
-        return $this->getStoresLatAndLng($storeIds);
+        return $this->getStoresLatAndLng($storeIds->toArray());
     }
 
     public function getStoresLatAndLng($storeIds)

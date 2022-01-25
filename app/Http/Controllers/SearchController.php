@@ -96,14 +96,13 @@ class SearchController extends Controller
         $this->saveKeyWord($keyWord,$identifiedUser->id);
 
         try {
-            $store=StoreBook::where('storeId',$storeId);
+            $store=Book::where('storeId',$storeId);
             if ($store->exists()){
                 $isOpen=Store::where('id',$storeId)->pluck('isOpen')->first();
                 if ($isOpen==0){
                     return response()->json(['status' => 'error', 'message' => 'this store is closed'],400);
                 }else{
-                    $storeBooks=$store->join('books','books.id','storebooks.bookId')
-                        ->where('books.name','like','%'.$keyWord.'%');
+                    $storeBooks=$store->where('name','like','%'.$keyWord.'%');
 
                     if ($storeBooks->exists()){
                         $books=$storeBooks->paginate(10);

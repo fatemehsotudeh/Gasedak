@@ -43,12 +43,11 @@ class StoreController extends Controller
     public function getStoreBooks(Request $request)
     {
         $storeId=$request->id;
-        try{
-            $storeData=StoreBook::where('storebooks.storeId',$storeId);
-            if ($storeData->exists()) {
-                $storeBooks=$storeData->join('books','books.id','=','storebooks.bookId');
-                $storeBooks=$storeBooks->paginate(10);
 
+        try{
+            $storeBooks=Book::where('books.storeId',$storeId);
+            if ($storeBooks->exists()) {
+                $storeBooks=$storeBooks->paginate(10);
                 return response()->json(['message'=>'return store books successfully','data'=>$storeBooks],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no books were found for this store'],404);

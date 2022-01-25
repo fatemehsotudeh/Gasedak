@@ -171,7 +171,6 @@ class Helper{
     public function paginate($request,$collection,$perPage=10)
     {
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $perPage = 5;
         $offset = ($currentPage * $perPage) - $perPage;
 
         $currentPageResults = array_values($collection->slice($offset, $perPage)->all());
@@ -181,6 +180,12 @@ class Helper{
         $paginatedItems->setPath($request->url());
 
         return $paginatedItems;
+    }
+
+    public function getCurrentDate()
+    {
+       // date_default_timezone_set('Asia/Tehran');
+        return date('Y-m-d H:i:s');
     }
 
 };
