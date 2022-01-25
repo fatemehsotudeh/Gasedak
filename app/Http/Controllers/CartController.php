@@ -56,16 +56,15 @@ class CartController extends Controller
         //Otherwise a new cart will be created for the store
         try{
             $checkInventory=$cartHelper->checkInventory();
-
             if ($checkInventory){
                 $resultStoreInCart=$cartHelper->checkStoreInCart();
                 if ($cartHelper->createOrUpdateCart($resultStoreInCart)){
                     return response()->json(['message' => 'add book to cart successfully'],200);
                 }else{
-                    return response()->json(['status'=>'error','message' => 'this book has already been added to the cart'],409);
+                    return response()->json(['status' => 'error','message' => 'this book has already been added to the cart'],409);
                 }
             }else{
-                return response()->json(['status'=>'error','message'=>'The stock of this book is zero and it is not possible to add it to the cart'],400);
+                return response()->json(['status' => 'error','message' => 'The stock of this book is zero and it is not possible to add it to the cart'],400);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -78,7 +77,6 @@ class CartController extends Controller
         $helper=new Libraries\Helper();
         $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
 
-        //get cart data
         //create object from cartHelper model
         $cartHelper=new CartHelper();
         $cartHelper->userId=$identifiedUser->id;
@@ -145,4 +143,33 @@ class CartController extends Controller
 
     }
 
+    public function deleteCart(Request $request)
+    {
+        //get inputs
+        $cartId=$request->cartId;
+
+        //Check that the inputs are not empty
+        if (empty($cartId) ){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the cartId field']);
+        }
+
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$cartId;
+
+        //Check the existence of the cart with this id
+        $cart=$cartHelper->checkExistenceCart();
+        if (!$cart){
+            return response()->json(['status'=>'error','message'=>'no cart was found with this id'],404);
+        }
+
+        try{
+            $cartHelper->deleteCartItems();
+            $cartHelper->deleteCart();
+            $cartHelper->deleteOrderWithCartEmpty();
+            return response()->json(['message' => 'delete cart successfully'],200);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
 }

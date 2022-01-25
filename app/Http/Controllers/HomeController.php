@@ -8,7 +8,6 @@ use App\Models\Category;
 use App\Models\GasedakSuggestion;
 use App\Models\SpecialPublicationBook;
 use App\Models\Store;
-use App\Models\StoreBook;
 use App\Models\UserFavoriteData;
 use Illuminate\Http\Request;
 
@@ -127,7 +126,7 @@ class HomeController extends Controller
 
             //if the number of the best offers is ten, we will show the same ones as the user assignment offer
             //If not, we will go to other cases so that we can finally show 10 books to the user.
-            $favoriteOffers=[];
+            $favoriteOffers=collect();
             if ($bestFavoriteOffers->exists()){
                 if(sizeof($bestFavoriteOffers->get())>=10){
                     return $bestFavoriteOffers->get();
@@ -203,8 +202,7 @@ class HomeController extends Controller
 
         $index=0;
         foreach ($publications->get()->toArray() as $publication){
-            $firstPublicationBooks=StoreBook::where('storebooks.storeId',$publicationsIds[$index])
-                ->join('books','books.id','storebooks.bookId')
+            $firstPublicationBooks=Book::where('books.storeId',$publicationsIds[$index])
                 ->orderBy('books.created_at','DESC')
                 ->take(10)
                 ->get();

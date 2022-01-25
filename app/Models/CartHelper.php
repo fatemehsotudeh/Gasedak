@@ -94,8 +94,6 @@ class CartHelper extends Model
 
         $cartItem->cartId=$cart->id;
         $cartItem->bookId=$this->bookId;
-        //$cartItem->price=$this->getBookPrice($bookId);
-        // $cartItem->discountAmount=$this->getBookDiscount($bookId);
         $cartItem->weight=$this->getBookWeight();
         $cartItem->save();
     }
@@ -106,9 +104,8 @@ class CartHelper extends Model
 
         $cartItem->cartId=$this->getCartId();
         $cartItem->bookId=$this->bookId;
-        //$cartItem->price=$this->getBookPrice($bookId);
-        // $cartItem->discountAmount=$this->getBookDiscount($bookId);
         $cartItem->weight=$this->getBookWeight();
+
         $cartItem->save();
     }
 
@@ -122,7 +119,6 @@ class CartHelper extends Model
                 $this->updateCart();
                 $this->updateOrderDate();
                 return true;
-
             }
         }else{
             $this->createNewCart();
@@ -340,6 +336,14 @@ class CartHelper extends Model
         ])->delete();
     }
 
+    public function deleteCartItems()
+    {
+        $cartItems=CartItem::where('cartId', $this->cartId);
+        if ($cartItems->exists()){
+            $cartItems->delete();
+        }
+    }
+
     public function checkCartEmpty()
     {
         if (!CartItem::where('cartId',$this->cartId)->exists()){
@@ -351,7 +355,10 @@ class CartHelper extends Model
 
     public function deleteCart()
     {
-        Cart::where('id',$this->cartId)->delete();
+        $cart=Cart::where('id',$this->cartId);
+        if ($cart->exists()){
+            $cart->delete();
+        }
     }
 
     public function updateBookQuantity($count)

@@ -24,14 +24,23 @@ class OrderHelper extends Model
         $order->storeId=$this->storeId;
         $order->trackingCode=$code;
         $order->orderDate=$helper->getCurrentDate();
-        $order->orderStatusId=1;
+        $order->orderStatusId=$this->getStatusId('waitingForPayment');
 
         $order->save();
     }
 
     public function deleteOrder()
     {
-        Order::where('id',$this->cartId)->delete();
+        $order=Order::where('id',$this->cartId);
+
+        if($order->exists()){
+            $order->delete();
+        }
+    }
+
+    public function getStatusId($status)
+    {
+        return OrderStatus::where('statusName',$status)->pluck('id')[0];
     }
 
 
