@@ -80,7 +80,7 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getCartData','CartController@getCartData');
     $router->post('/changeBookCount','CartController@changeBookCount');
     $router->post('/deleteCart','CartController@deleteCart');
-
+    $router->post('/registerDiscountCode','DiscountController@registerDiscountCode');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 

@@ -40,18 +40,9 @@ class CartHelper extends Model
         }
     }
 
-    public function checkExistenceBook()
-    {
-        if(Book::where('id',$this->bookId)->exists()){
-            return true;
-        }else{
-            return false;
-        }
-    }
-
     public function checkExistenceBookStore()
     {
-        if(Book::where([['storeId',$this->storeId],['id',$this->bookId]])->exists()){
+        if(StoreBook::where([['storeId',$this->storeId],['bookId',$this->bookId]])->exists()){
             return true;
         }else{
             return false;
@@ -67,12 +58,25 @@ class CartHelper extends Model
         }
     }
 
+    public function checkStoreInCartV2()
+    {
+        if(Cart::where([['storeId',$this->storeId],['id',$this->cartId]])->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public function checkBookInCart()
     {
-        $cartId=$this->getCartId();
+        $this->cartId=$this->getCartId();
+        return $this->checkBookInCartItem();
+    }
 
+    public function checkBookInCartItem()
+    {
         $cartItem=CartItem::where([
-            ['cartId',$cartId],
+            ['cartId',$this->cartId],
             ['bookId',$this->bookId]
         ]);
 
@@ -94,7 +98,6 @@ class CartHelper extends Model
 
         $cartItem->cartId=$cart->id;
         $cartItem->bookId=$this->bookId;
-        $cartItem->weight=$this->getBookWeight();
         $cartItem->save();
     }
 
@@ -104,8 +107,6 @@ class CartHelper extends Model
 
         $cartItem->cartId=$this->getCartId();
         $cartItem->bookId=$this->bookId;
-        $cartItem->weight=$this->getBookWeight();
-
         $cartItem->save();
     }
 
@@ -149,12 +150,12 @@ class CartHelper extends Model
 
     public function getBookInventory()
     {
-        return Book::where('id',$this->bookId)->pluck('inventory')[0];
+        return StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])->pluck('inventory')[0];
     }
 
     public function getBookPrice()
     {
-        return Book::where('id',$this->bookId)->pluck('price')[0];
+        return  StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])->pluck('price')[0];
     }
 
     public function createOrderForCart()
@@ -223,7 +224,6 @@ class CartHelper extends Model
 
        foreach ($carts->toArray() as $key=>$cart){
            $this->cartId=$cart['id'];
-
            $carts[$key]['books']=$this->getCartItemData();
 
            foreach ($carts[$key]['books']->toArray() as $index=>$book){
@@ -248,6 +248,12 @@ class CartHelper extends Model
             ->get();
     }
 
+    public function getCartItemQPD()
+    {
+        return CartItem::where([['cartId',$this->cartId],['bookId',$this->bookId]])
+            ->first();
+    }
+
     public function getUserCartsId()
     {
         return Cart::where('userId',$this->userId)
@@ -256,6 +262,7 @@ class CartHelper extends Model
 
     public function checkAndUpdateCartItem()
     {
+       $this->storeId=$this->getCartStoreId();
        $bookIds=$this->getCartItemsBookId();
        $cartItemsQuantity=$this->getCartItemsQuantity();
 
@@ -287,6 +294,11 @@ class CartHelper extends Model
         }
     }
 
+    public function getCartStoreId()
+    {
+        return Cart::where('id',$this->cartId)->pluck('storeId')[0];
+    }
+
     public function updateCartQPD()
     {
         Cart::where([
@@ -296,6 +308,12 @@ class CartHelper extends Model
             'totalPrice'=>$this->calculateTotalPrice(),
             'totalDiscountAmount'=>$this->calculateTotalDiscount()
         ]);
+    }
+
+    public function getCartQPD()
+    {
+        return Cart::where('id',$this->cartId)
+            ->first();
     }
 
     public function calculateTotalPrice()
@@ -412,7 +430,7 @@ class CartHelper extends Model
 
     public function getDailyDiscount()
     {
-        $book=Book::where('id',$this->bookId);
+        $book=StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]]);
         $hasDailyDiscount=$book->pluck('isDailyDiscount')[0];
         $expDate=$book->pluck('dailyDiscountExpDate')[0];
 
@@ -443,7 +461,9 @@ class CartHelper extends Model
 
     public function getNormalDiscount()
     {
-        return Book::where('id',$this->bookId)
+        return StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])
             ->pluck('discountAmount')[0];
     }
+
+
 }

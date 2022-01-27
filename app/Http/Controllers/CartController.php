@@ -39,12 +39,6 @@ class CartController extends Controller
             return response()->json(['status'=>'error','message'=>'no store was found with this id'],404);
         }
 
-        //Check the existence of the book with this id
-        $book=$cartHelper->checkExistenceBook();
-        if (!$book){
-            return response()->json(['status'=>'error','message'=>'no book was found with this id'],404);
-        }
-
         //Check the availability of this book in the store
         $bookStore=$cartHelper->checkExistenceBookStore();
         if (!$bookStore){
