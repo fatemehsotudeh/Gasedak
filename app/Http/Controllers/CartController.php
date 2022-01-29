@@ -76,7 +76,7 @@ class CartController extends Controller
         $cartHelper->userId=$identifiedUser->id;
 
         try{
-            $carts=$cartHelper->checkAndGetCartsData();
+            $carts=$cartHelper->getCartsData();
             $paginatedCarts=$helper->paginate($request,$carts);
             return response()->json(['data'=> $paginatedCarts,'message' => 'return cart data successfully'],200);
         }catch (\Exception $e){
@@ -84,7 +84,34 @@ class CartController extends Controller
         }
     }
 
-    public function changeBookCount(Request $request)
+    public function getCartItemData(Request $request)
+    {
+        //get inputs
+        $cartId=$request->cartId;
+
+        //Check that the inputs are not empty
+        if (empty($cartId) ){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the cartId field']);
+        }
+
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$cartId;
+
+        //Check the existence of the cart with this id
+        $cart=$cartHelper->checkExistenceCart();
+        if (!$cart){
+            return response()->json(['status'=>'error','message'=>'no cart was found with this id'],404);
+        }
+
+        try {
+            return $cartHelper->checkAndGetCartData();
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
+
+    public function IncOrDecQuantity(Request $request)
     {
         //decode bearer token
         $helper=new Libraries\Helper();
@@ -92,11 +119,12 @@ class CartController extends Controller
 
         //get inputs
         $cartId=$request->cartId;
+        $storeId=$request->storeId;
         $bookId=$request->bookId;
-        $count=$request->count;
+        $state=$request->state;
 
         //Check that the inputs are not empty
-        if (empty($cartId) || empty($bookId)){
+        if (empty($cartId) || empty($bookId) || empty($storeId) || empty($state)){
             return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
         }
 
@@ -105,6 +133,7 @@ class CartController extends Controller
         $cartHelper->userId=$identifiedUser->id;
         $cartHelper->cartId=$cartId;
         $cartHelper->bookId=$bookId;
+        $cartHelper->storeId=$storeId;
 
         //Check the existence of the cart with this id
         $cart=$cartHelper->checkExistenceCart();
@@ -119,22 +148,15 @@ class CartController extends Controller
         }
 
         try{
-            if ($count==0){
-                //delete book from cart
-                $cartHelper->deleteCartItem();
+            if ($cartHelper->updateBookQuantity($state)){
+                $cart=$cartHelper->checkAndGetCartData();
+                return response()->json(['data'=>$cart,'message' => 'update book quantity successfully'],200);
             }else{
-                //update book quantity
-                $result=$cartHelper->updateBookQuantity($count);
-                if(!$result){
-                    return response()->json(['status'=>'error','message' => 'The number selected is more than the book stock'],400);
-                }
+                return response()->json(['status'=>'error','message' => 'it is not possible to increase the number due to insufficient inventory'],400);
             }
-            $cart=$cartHelper->checkAndGetCartData();
-            return response()->json(['data'=> $cart,'message' => 'change book count successfully'],200);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
-
     }
 
     public function deleteCart(Request $request)

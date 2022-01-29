@@ -10,7 +10,12 @@ class CartHelper extends Model
 {
     //
     protected $fillable=[
-        'userId','bookId','storeId','cartId'
+        'userId','bookId','storeId','cartId','bookRecord'
+    ];
+
+    protected $attributes=[
+        'quantityChangeMessages' => [],
+        'priceChangeMessages' => [],
     ];
 
     public function checkExistenceStore()
@@ -51,7 +56,9 @@ class CartHelper extends Model
 
     public function checkStoreInCart()
     {
-        if(Cart::where([['storeId',$this->storeId],['userId',$this->userId]])->exists()){
+        $cart=Cart::where([['storeId',$this->storeId],['userId',$this->userId]]);
+        if($cart->exists()){
+            $this->cartId=$cart->pluck('id')[0];
             return true;
         }else{
             return false;
@@ -69,7 +76,6 @@ class CartHelper extends Model
 
     public function checkBookInCart()
     {
-        $this->cartId=$this->getCartId();
         return $this->checkBookInCartItem();
     }
 
@@ -98,15 +104,22 @@ class CartHelper extends Model
 
         $cartItem->cartId=$cart->id;
         $cartItem->bookId=$this->bookId;
+        $cartItem->price=$this->getBookPrice();
+        $cartItem->discountAmount=$this->getBookDiscount();
         $cartItem->save();
+
+        $this->cartId=$cart->id;
+        $this->updateCartQPD();
     }
 
     public function updateCart()
     {
         $cartItem=new CartItem();
 
-        $cartItem->cartId=$this->getCartId();
+        $cartItem->cartId=$this->cartId;
         $cartItem->bookId=$this->bookId;
+        $cartItem->price=$this->getBookPrice();
+        $cartItem->discountAmount=$this->getBookDiscount();
         $cartItem->save();
     }
 
@@ -118,6 +131,7 @@ class CartHelper extends Model
                 return false;
             }else{
                 $this->updateCart();
+                $this->updateCartQPD();
                 $this->updateOrderDate();
                 return true;
             }
@@ -126,11 +140,6 @@ class CartHelper extends Model
             $this->createOrderForCart();
             return true;
         }
-    }
-
-    public function getBookWeight()
-    {
-        return Book::where('id',$this->bookId)->pluck('weight')[0];
     }
 
     public function getCartId()
@@ -148,14 +157,20 @@ class CartHelper extends Model
         }
     }
 
+    public function getBookData()
+    {
+        $this->bookRecord=StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])->first();
+    }
+
     public function getBookInventory()
     {
-        return StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])->pluck('inventory')[0];
+        $this->getBookData();
+        return $this->bookRecord['inventory'];
     }
 
     public function getBookPrice()
     {
-        return  StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])->pluck('price')[0];
+        return  $this->bookRecord['price'];
     }
 
     public function createOrderForCart()
@@ -172,20 +187,13 @@ class CartHelper extends Model
 
         $order=new Order();
         $orderDate=$helper->getCurrentDate();
-        $cartId=$this->getCartId();
 
-        $order->where('id',$cartId)
+        $order->where('id',$this->cartId)
             ->update(['orderDate'=>$orderDate]);
     }
 
-    public function checkAndGetCartsData()
+    public function getCartsData()
     {
-        $userCartsId=$this->getUserCartsId();
-        foreach ($userCartsId as $cartId){
-            $this->cartId=$cartId;
-            $this->checkAndUpdateCartItem();
-            $this->updateCartQPD();
-        }
         return $this->getCartLists();
     }
 
@@ -198,17 +206,17 @@ class CartHelper extends Model
 
     public function getCartItems()
     {
-        $cart=Cart::where('carts.id',$this->cartId)
-            ->join('stores','stores.id','carts.storeId')
-            ->Join('orders','orders.id','carts.id')
-            ->select('carts.*','orders.orderDate','orders.trackingCode','stores.name')
-            ->first();
+        $cart=Cart::where('carts.id',$this->cartId)->first();
 
         $cart['books']=$this->getCartItemData();
 
+        $counter=0;
         foreach ($cart['books']->toArray() as $index=>$book){
             $this->bookId=$book['id'];
-            $cart['books'][$index]['images']=$this->getBookImages();
+            $cart['books'][$index]['image']=$this->getBookImage();
+            $cart['books'][$index]['quantityChangeMessage']=$this->quantityChangeMessages[$counter];
+            $cart['books'][$index]['priceChangeMessage']=$this->priceChangeMessages[$counter];
+            $counter++;
         }
 
         return $cart;
@@ -219,25 +227,32 @@ class CartHelper extends Model
        $carts=Cart::where('carts.userId',$this->userId)
            ->join('stores','stores.id','carts.storeId')
            ->Join('orders','orders.id','carts.id')
-           ->select('carts.*','orders.orderDate','orders.trackingCode','stores.name')
+           ->select('carts.id','orders.orderDate','orders.trackingCode','stores.name')
            ->get();
 
-       foreach ($carts->toArray() as $key=>$cart){
+       foreach ($carts as $key=>$cart){
            $this->cartId=$cart['id'];
-           $carts[$key]['books']=$this->getCartItemData();
+           $booksId=$this->getBookIdFromCartsItem();
 
-           foreach ($carts[$key]['books']->toArray() as $index=>$book){
-               $this->bookId=$book['id'];
-               $carts[$key]['books'][$index]['images']=$this->getBookImages();
+           $goodsImage=[];
+           foreach ($booksId as $bookId){
+               $this->bookId=$bookId;
+               array_push($goodsImage,$this->getBookImage());
            }
+           $carts[$key]['goodsImage']=$goodsImage;
        }
 
         return $carts;
     }
 
-    public function getBookImages()
+    public function getBookImage()
     {
-        return BookImage::where('bookId',$this->bookId)->get();
+        $imagePath=BookImage::where('bookId',$this->bookId);
+       if($imagePath->exists()){
+           return $imagePath->first()['imagePath'];
+       }else{
+           return "";
+       }
     }
 
     public function getCartItemData()
@@ -246,6 +261,11 @@ class CartHelper extends Model
             ->join('books','books.id','cartitems.bookId')
             ->select('cartitems.*','books.name','books.publisher','books.authors')
             ->get();
+    }
+
+    public function getBookIdFromCartsItem()
+    {
+        return CartItem::where('cartId',$this->cartId)->pluck('bookId');
     }
 
     public function getCartItemQPD()
@@ -266,32 +286,49 @@ class CartHelper extends Model
        $bookIds=$this->getCartItemsBookId();
        $cartItemsQuantity=$this->getCartItemsQuantity();
 
+
        foreach ($bookIds as $key => $bookId){
            $this->bookId=$bookId;
-           $bookInventory=$this->getBookInventory();
-           $bookQuantity=$cartItemsQuantity[$key];
-
-           $flag=0;
-           if ($bookInventory==0){
-               //delete this book from cart item
-               $this->deleteCartItem();
-               $flag=1;
-           }elseif($bookQuantity>$bookInventory){
-               $quantity=$bookInventory;
-           }else{
-               $quantity=$bookQuantity;
-           }
-
-           if ($flag!=1){
-               $this->updateCartItemQPD($quantity);
-           }
+           $inventory=$this->getBookInventory();
+           $cartItemQuantity=$cartItemsQuantity[$key];
+           $checkResult=$this->checkCartItemQuantityWithInventory($cartItemQuantity,$inventory);
+           $this->setChangeQuantityMessages($checkResult['stateQuantityChange']);
+           $this->updateCartItemQPD($checkResult['quantity'],$checkResult['isAvailable']);
        }
+    }
 
-        $isCartEmpty=$this->checkCartEmpty();
-        if ($isCartEmpty){
-            $this->deleteCart();
-            $this->deleteOrderWithCartEmpty();
+    public function checkCartItemQuantityWithInventory($cartItemQuantity,$inventory)
+    {
+        $isAvailable=1;
+        if ($inventory==0 && $cartItemQuantity!=0){
+            $quantity=0;
+            $isAvailable=0;
+            $stateQuantityChange='unavailable';
+        }elseif($cartItemQuantity>$inventory){
+            $quantity=$inventory;
+            $stateQuantityChange='change';
+        }elseif ($cartItemQuantity==0){
+            // If it was not available before,
+            // we will check to see if it is available,
+            // inform the user and set quantity one and make it available.
+            if ($inventory>0){
+                $quantity=1;
+                $stateQuantityChange='available';
+            }else{
+                $isAvailable=0;
+                $quantity=$cartItemQuantity;
+                $stateQuantityChange='withOutChange';
+            }
+        }else{
+            $quantity=$cartItemQuantity;
+            $stateQuantityChange='withOutChange';
         }
+
+        return [
+            'quantity'=> $quantity,
+            'stateQuantityChange'=> $stateQuantityChange,
+            'isAvailable'=> $isAvailable
+        ];
     }
 
     public function getCartStoreId()
@@ -316,22 +353,40 @@ class CartHelper extends Model
             ->first();
     }
 
+    public function getCartItemQuantity()
+    {
+        return CartItem::where([['cartId',$this->cartId],['bookId',$this->bookId]])->pluck('quantity')[0];
+    }
+
     public function calculateTotalPrice()
     {
-        return CartItem::where('cartId',$this->cartId)
-            ->sum(CartItem::raw('price * quantity'));
+        $cartItem=CartItem::where('cartId',$this->cartId);
+        if (sizeof($cartItem->get())!=1){
+            return $cartItem->sum(CartItem::raw('price * quantity'));
+        }else{
+            return $cartItem->first()['quantity']*$cartItem->first()['price'];
+        }
+
     }
 
     public function calculateTotalDiscount()
     {
-        return CartItem::where('cartId',$this->cartId)
-            ->sum(CartItem::raw('discountAmount * quantity'));
+        $cartItem=CartItem::where('cartId',$this->cartId);
+        if (sizeof($cartItem->get())!=1){
+            return $cartItem->sum(CartItem::raw('discountAmount * quantity'));
+        }else{
+            return $cartItem->first()['quantity']*$cartItem->first()['discountAmount'];
+        }
     }
 
     public function calculateTotalQuantity()
     {
-        return CartItem::where('cartId',$this->cartId)
-            ->sum('quantity');
+        $cartItem=CartItem::where('cartId',$this->cartId);
+        if (sizeof($cartItem->get())!=1){
+            return $cartItem->sum('quantity');
+        }else{
+            return $cartItem->first()['quantity'];
+        }
     }
 
     public function getCartItemsBookId()
@@ -379,20 +434,53 @@ class CartHelper extends Model
         }
     }
 
-    public function updateBookQuantity($count)
+    public function updateBookQuantity($state)
     {
-        $bookInventory=$this->getBookInventory();
+        $quantity=$this->getCartItemQuantity();
 
-        if($bookInventory==0){
-            //delete book from cart
-            $this->deleteCartItem();
-            return true;
-        }elseIf($bookInventory<$count){
+        if ($state=='up'){
+            //increase quantity
+            return $this->increaseQuantity($quantity);
+        }else{
+            //decrease quantity
+            return $this->decreaseQuantity($quantity);
+        }
+    }
+
+    public function increaseQuantity($quantity)
+    {
+        $inventory=$this->getBookInventory();
+        if ($inventory<$quantity+1){
             return false;
         }else{
-            $this->updateCartItemQPD($count);
+            $this->increaseCartItemQuantity($quantity);
             return true;
         }
+    }
+
+    public function decreaseQuantity($quantity)
+    {
+        if ($quantity-1==0){
+            $this->deleteCartItem();
+            if ($this->checkCartEmpty()){
+                $this->deleteCart();
+                $this->deleteOrderWithCartEmpty();
+            }
+        }else{
+            $this->updateCartItemQuantity($quantity-1);
+        }
+        return true;
+    }
+
+    public function increaseCartItemQuantity($quantity)
+    {
+        $this->updateCartItemQuantity($quantity+1);
+    }
+
+    public function updateCartItemQuantity($quantity)
+    {
+        CartItem::where([['cartId',$this->cartId],['bookId',$this->bookId]])
+            ->update(['quantity'=>$quantity]);
     }
 
     public function deleteOrderWithCartEmpty()
@@ -403,15 +491,25 @@ class CartHelper extends Model
         $orderHelper->deleteOrder();
     }
 
-    public function updateCartItemQPD($quantity)
+    public function updateCartItemQPD($quantity,$isAvailable=1)
     {
-        CartItem::where([
+        $cartItem= CartItem::where([
             ['cartId',$this->cartId],
             ['bookId',$this->bookId]
-        ])->update([
+        ]);
+
+        $oldPrice=$cartItem->first()['price'];
+        $newPrice=$this->getBookPrice();
+        $oldDis=$cartItem->first()['discountAmount'];
+        $newDis=$this->getBookDiscount();
+
+        $this->setChangePriceMessages($oldPrice,$newPrice);
+
+        $cartItem->update([
+            'isAvailable'=>$isAvailable,
             'quantity'=> $quantity,
-            'price'=>$this->getBookPrice(),
-            'discountAmount'=>$this->getBookDiscount()
+            'price'=>$newPrice,
+            'discountAmount'=>$newDis
         ]);
     }
 
@@ -430,14 +528,13 @@ class CartHelper extends Model
 
     public function getDailyDiscount()
     {
-        $book=StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]]);
-        $hasDailyDiscount=$book->pluck('isDailyDiscount')[0];
-        $expDate=$book->pluck('dailyDiscountExpDate')[0];
+        $hasDailyDiscount= $this->bookRecord['isDailyDiscount'];
+        $expDate=$this->bookRecord['dailyDiscountExpDate'];
 
         if ($hasDailyDiscount){
             //check exp date
             if (!$this->checkDailyDiscountExpDate($expDate)){
-                return $book->pluck('discountAmount')[0];
+                return $this->bookRecord['discountAmount'];
             }else{
                 //has daily discount but expired
                 return 0;
@@ -461,9 +558,48 @@ class CartHelper extends Model
 
     public function getNormalDiscount()
     {
-        return StoreBook::where([['bookId',$this->bookId],['storeId',$this->storeId]])
-            ->pluck('discountAmount')[0];
+        return $this->bookRecord['discountAmount'];
     }
 
+    public function setChangeQuantityMessages($state)
+    {
+        switch ($state){
+            case 'change':
+                $message='تعداد انتخاب شده به خاطر کافی نبودن موجودی به اندازه موجودی تغییر کرد';
+                break;
+            case 'withOutChange':
+                $message="";
+                break;
+            case 'unavailable':
+                $message='ناموجود شد';
+                break;
+            case 'available':
+                $message='موجود شد';
+        }
 
+        $messages=$this->quantityChangeMessages;
+        array_push($messages,$message);
+        $this->quantityChangeMessages=$messages;
+    }
+
+    public function setChangePriceMessages($oldPrice,$newPrice)
+    {
+        switch (true){
+            case $oldPrice-$newPrice>0:
+                $diff=$oldPrice-$newPrice;
+                $message=" قیمت جدید نسبت به قیمت قبلی $diff کاهش یافت ";
+                break;
+            case $oldPrice-$newPrice<0:
+                $diff=$newPrice-$oldPrice;
+                $message="قیمت جدید نسبت به قبلی $diff افزایش یافت";
+                break;
+            case $oldPrice-$newPrice==0:
+                $message="";
+                break;
+        }
+
+        $messages=$this->priceChangeMessages;
+        array_push($messages,$message);
+        $this->priceChangeMessages=$messages;
+    }
 }
