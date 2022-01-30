@@ -42,7 +42,37 @@ class OrderController extends Controller
 
         try{
             $order->updateOrderShipperAndAddress();
-            return response()->json(['data'=> $order->getOrderData(),'message' => 'update order data successfully'],200);
+            return $order->checkAndGetRelatedResponse($cartHelper);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
+
+    public function getOrderCosts(Request $request)
+    {
+        //get input
+        $cartId=$request->cartId;
+
+        //Check that the input are not empty
+        if (empty($cartId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the cartId field']);
+        }
+
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$cartId;
+
+        //Check the existence of the cart with this id
+        $cart=$cartHelper->checkExistenceCart();
+        if (!$cart){
+            return response()->json(['status'=>'error','message'=>'no cart was found with this id'],404);
+        }
+
+        $order=new Order();
+        $order->id=$cartId;
+
+        try{
+            return $order->checkAndGetRelatedResponse($cartHelper);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
@@ -59,13 +89,22 @@ class OrderController extends Controller
 
         //Check that the inputs are not empty
         if (empty($cartId) || empty($paymentMethod)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill the cartId field']);
+            return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
         }
 
         $order=new Order();
         $order->id=$cartId;
         $order->userId=$identifiedUser->id;
-        return $order->paymentBasedSelectedMethod($paymentMethod);
 
+        //create object from cartHelper model
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$cartId;
+
+        try {
+            return $order->checkAndGetRelatedResponse($cartHelper,'payment',$paymentMethod);
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
     }
+
 }

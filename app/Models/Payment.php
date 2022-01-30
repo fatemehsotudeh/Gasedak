@@ -7,29 +7,29 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     //
-    protected $fillable=['userId','amount','result'];
+    protected $fillable=['userId','amount','result','orderId'];
 
     public function instantPayment()
     {
         //Connecting to zarinpal port
-        $data = $this->getData('instant');
+        $data = $this->getRequestData('instant');
 
-        if (!$this->connectToZarinpal($data)) {
-            return response()->json(['status' =>'error','message'=>'curl error'],500);
+        if (!$this->connectToZarinpalApi($data,'https://api.zarinpal.com/pg/v4/payment/request.json')) {
+            return ['status'=> 'error','message'=> 'curl error'];
         } else {
             if (empty($this->result['errors'])) {
                 if ($this->result['data']['code'] == 100) {
                     $paymentLink='https://www.zarinpal.com/pg/StartPay/' . $this->result['data']["authority"];
-                    return response()->json(['paymentLink' =>$paymentLink,'message'=>'return payment link successfully'],200);
+                    return ['status'=>'success','paymentLink'=> $paymentLink];
                 }
             }
             else {
-                return response()->json(['status' =>'error','message'=> $this->result['errors']['message']],500);
+                return ['status'=>'error','message'=> $this->result['errors']['message']];
             }
         }
     }
 
-    public function getData($paymentType)
+    public function getRequestData($paymentType)
     {
         return [
             "merchant_id" => env('merchant_id'),
@@ -44,16 +44,16 @@ class Payment extends Model
     {
         switch ($method){
             case 'instant':
-                return "http://localhost:8000/verifyPayment/$this->amount/$this->userId";
+                return "http://localhost:8000/verifyPayment/$this->amount/$this->userId/$this->orderId";
             case 'wallet':
                 return "http://localhost:8000/verifyIncreaseInventory/$this->amount/$this->userId";
         }
     }
 
-    public function connectToZarinpal($data)
+    public function connectToZarinpalApi($data,$url)
     {
         $jsonData = json_encode($data);
-        $ch = curl_init('https://api.zarinpal.com/pg/v4/payment/request.json');
+        $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v1');
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
@@ -68,8 +68,6 @@ class Payment extends Model
         $this->result = json_decode($result, true, JSON_PRETTY_PRINT);
         curl_close($ch);
 
-
-        echo $err;
         if (!$err){
             return true;
         }else{
@@ -86,4 +84,109 @@ class Payment extends Model
                 return "افزایش موجودی کیف پول";
         }
     }
+
+    public function verifyPayment($request)
+    {
+        $authority = $request->Authority;
+        $this->orderId=$request->cartId;
+        $data = [
+            "merchant_id" => env('merchant_id'),
+            "authority" => $authority,
+            "amount" => $request->amount
+        ];
+
+        if (!$this->connectToZarinpalApi($data,'https://api.zarinpal.com/pg/v4/payment/verify.json')) {
+            return response()->json(['status' =>'error','message'=>'curl error'],500);
+        } else {
+            //save deposit transaction
+            return $this->saveTransaction($request,$authority,'orderPayment');
+        }
+    }
+
+    public function saveTransaction($request,$authority,$state)
+    {
+        $depositTransaction=new DepositTransaction();
+        $depositTransaction->userId=$request->userId;
+        $depositTransaction->amount=$request->amount;
+        $depositTransaction->authority=$authority;
+
+        if ($request->Status == "OK") {
+            $depositTransaction->refId=$this->result['data']['ref_id'];
+            $depositTransaction->transactionStatus='Transation success';
+
+            //Check that no duplicate transactions are recorded
+           // if (!DepositTransaction::where('authority',$authority)->exists()){
+                $depositTransaction->save();
+
+                switch ($state){
+                    case 'orderPayment':
+                        $this->updateOrderStatus($depositTransaction->id);
+                        $this->updateDiscountCodes();
+                        $this->deleteCartAndUpdateOrder();
+                        break;
+                    case 'wallet':
+                        $this->updateWalletAmount($request);
+                        break;
+                }
+                return response()->json(['message'=>'Transation success.'],200);
+          //  }
+        }else{
+            $depositTransaction->transactionStatus=$this->result['errors']['message'];
+
+            //Check that no duplicate transactions are recorded
+            if (!DepositTransaction::where('authority',$authority)->exists()){
+                $depositTransaction->save();
+            }
+            return response()->json(['status' =>'error','message'=> $this->result['errors']['message']]);
+        }
+    }
+
+    public function updateWalletAmount($request)
+    {
+        $userFound=Wallet::where('userId',$request->userId);
+        $userBalance=$userFound->pluck('balance')[0];
+        $balance=intval($request->amount)+$userBalance;
+        $userFound->update(['balance'=>$balance]);
+    }
+
+    public function updateOrderStatus($depositId)
+    {
+        $order=new OrderStatus();
+        Order::where('id',$this->orderId)
+            ->update([
+               'orderStatusId' => $order->getStatusId('progressing'),
+                'orderDate' => date('Y-m-d H:i:s'),
+                'isPaid' => true,
+                'paymentId' => $depositId
+            ]);
+    }
+
+    public function updateDiscountCodes()
+    {
+        $disCodeId=$this->getOrderDiscountCodeId();
+        if ($this->getOrderDiscountCodeId()!=null){
+            $discount=new Discount();
+            $discount->orderId=$this->orderId;
+            $discount->id=$disCodeId;
+            $discount->updateDiscountUsed();
+        }
+    }
+
+    public function getOrderDiscountCodeId()
+    {
+        return Order::where('id',$this->orderId)->pluck('discountCodeId')[0];
+    }
+
+    public function deleteCartAndUpdateOrder()
+    {
+        $order=new Order();
+        $order->id=$this->orderId;
+        $order->addOrderItems();
+
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$this->orderId;
+        $cartHelper->deleteCartItems();
+        $cartHelper->deleteCart();
+    }
+
 }

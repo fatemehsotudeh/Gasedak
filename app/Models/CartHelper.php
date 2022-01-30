@@ -16,6 +16,7 @@ class CartHelper extends Model
     protected $attributes=[
         'quantityChangeMessages' => [],
         'priceChangeMessages' => [],
+        'orderProcessMessages'=>[],
     ];
 
     public function checkExistenceStore()
@@ -84,6 +85,21 @@ class CartHelper extends Model
         $cartItem=CartItem::where([
             ['cartId',$this->cartId],
             ['bookId',$this->bookId]
+        ]);
+
+        if($cartItem->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function checkAvailableBookInCartItem()
+    {
+        $cartItem=CartItem::where([
+            ['cartId',$this->cartId],
+            ['bookId',$this->bookId],
+            ['isAvailable',1]
         ]);
 
         if($cartItem->exists()){
@@ -295,6 +311,7 @@ class CartHelper extends Model
            $this->setChangeQuantityMessages($checkResult['stateQuantityChange']);
            $this->updateCartItemQPD($checkResult['quantity'],$checkResult['isAvailable']);
        }
+
     }
 
     public function checkCartItemQuantityWithInventory($cartItemQuantity,$inventory)
@@ -563,23 +580,34 @@ class CartHelper extends Model
 
     public function setChangeQuantityMessages($state)
     {
+        $goodName=$this->getGoodName();
         switch ($state){
             case 'change':
-                $message='تعداد انتخاب شده به خاطر کافی نبودن موجودی به اندازه موجودی تغییر کرد';
+                $message='تعداد انتخاب شده خاطر کافی نبودن موجودی به اندازه موجودی تغییر کرد';
+                $orderMessage="تعداد کتاب ".$goodName."به خاطر کم بودن موجودی به اندازه موجودی تغییر پیدا کرد";
                 break;
             case 'withOutChange':
                 $message="";
+                $orderMessage="";
                 break;
             case 'unavailable':
                 $message='ناموجود شد';
+                $orderMessage=" کتاب ".$goodName."ناموجود شد";
                 break;
             case 'available':
                 $message='موجود شد';
+                $orderMessage="";
         }
 
         $messages=$this->quantityChangeMessages;
         array_push($messages,$message);
         $this->quantityChangeMessages=$messages;
+
+        if ($orderMessage!=""){
+            $orderMessages=$this->orderProcessMessages;
+            array_push($orderMessages,$orderMessage);
+            $this->orderProcessMessages=$orderMessages;
+        }
     }
 
     public function setChangePriceMessages($oldPrice,$newPrice)
@@ -601,5 +629,16 @@ class CartHelper extends Model
         $messages=$this->priceChangeMessages;
         array_push($messages,$message);
         $this->priceChangeMessages=$messages;
+
+    }
+
+    public function getGoodName()
+    {
+        return Book::where('id',$this->bookId)->pluck('name')[0];
+    }
+
+    public function getCartQuantity()
+    {
+        return Cart::where('id',$this->cartId)->pluck('totalQuantity')[0];
     }
 }

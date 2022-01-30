@@ -16,7 +16,8 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-        return CartItem::where('cartId',7)->pluck('bookId');
+        $amount=12000;
+       dd($amount."0");
 
 //        $oldPrice=12000;
 //        $newPrice=12000;

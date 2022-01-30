@@ -10,7 +10,7 @@ class Discount extends Model
 {
     //
     protected $table='discountcodes';
-    protected $fillable=['userId','code','id','bookId','discountRow','orderId','discountRef','message'];
+    protected $fillable=['userId','code','id','bookId','discountRow','orderId','discountRef','message','amount'];
     protected $casts=[
         'storesId'=> 'array'
     ];
@@ -25,6 +25,11 @@ class Discount extends Model
         }else{
             return false;
         }
+    }
+
+    public function setDiscountRow()
+    {
+        $this->discountRow=Discount::where('id',$this->id)->first();
     }
 
     public function checkCodeExpiration()
@@ -61,7 +66,8 @@ class Discount extends Model
         switch ($userType){
             case 'all':
             case 'public':
-                return $this->checkDiscountRef();
+                $this->checkDiscountRef();
+                break;
             case 'specified':
                 return $this->checkUserId();
         }
@@ -72,7 +78,7 @@ class Discount extends Model
         $userId=$this->discountRow['userId'];
 
         if ($this->userId==$userId){
-            return $this->checkDiscountRef();
+            $this->checkDiscountRef();
         }else{
             return 'The code entered is not for you';
         }
@@ -84,11 +90,12 @@ class Discount extends Model
 
         switch ($this->discountRef){
             case 'book':
-                return $this->checkBookInCart();
+                $this->checkBookInCart();
+                break;
             case 'cart':
             case 'sum':
             case 'delivery':
-                return $this->checkStoreRef();
+                $this->checkStoreRef();
         }
     }
 
@@ -98,8 +105,8 @@ class Discount extends Model
 
         $cartItem=$this->createCartModel($this->bookId);
 
-        if($cartItem->checkBookInCartItem()){
-            return $this->checkStoreRef();
+        if($cartItem->checkAvailableBookInCartItem()){
+            $this->checkStoreRef();
         }else{
             $this->message='this discount code is for books, but you do not have this book in your cart';
         }
@@ -112,14 +119,18 @@ class Discount extends Model
         switch ($storeRef){
             case 'all':
                 $price=$this->getRelatedRefPrice();
-                return $this->checkAndGetDiscountAmount($price);
+                $this->checkAndGetDiscountAmount($price);
+                break;
             case 'one':
                 $price=$this->getRelatedRefPrice();
-                return $this->checkStoreAndGetDiscountAmount($price);
+                $this->checkStoreAndGetDiscountAmount($price);
+                break;
             case 'many':
                 $price=$this->getRelatedRefPrice();
-                return $this->checkStoresAndGetDiscountAmount($price);
+                $this->checkStoresAndGetDiscountAmount($price);
+                break;
         }
+
     }
 
     public function getRelatedRefPrice()
@@ -143,30 +154,45 @@ class Discount extends Model
 
     public function checkAndGetDiscountAmount($price)
     {
-        if($this->checkPriceBetweenUpAndLow($price)){
+        if($this->checkPriceHighThanLowerBound($price)){
             //update cart item and discount code used field set 1 and increase count
             $disAmount=$this->discountRow['amount'];
             $discountType=$this->discountRow['discountType'];
 
             if ($discountType=='percentage'){
-                return ($disAmount * $price )/100;
+                $dis= ($disAmount * $price )/100;
             }else{
-                return $disAmount;
+                $dis=$disAmount;
             }
+            $dis=$this->checkDisLowThanUpperBoundAndGetResult($dis);
+            $this->amount=$dis;
+            //echo $this->amount;
         }else{
-           $this->message='minimum price to apply this discount code is'.$this->discountRow['upperBound'];
+           $this->message='حداقل قیمت برای اعمال این کد باید'.$this->discountRow['lowerBound'].'باشد';
+           $this->amount=0;
         }
     }
 
-    public function checkPriceBetweenUpAndLow($price)
+    public function checkPriceHighThanLowerBound($price)
     {
-        $upperBound=$this->discountRow['upperBound'];
+      //  $upperBound=$this->discountRow['upperBound'];
         $loweBound=$this->discountRow['lowerBound'];
 
-        if($upperBound>=$price && $loweBound<=$price){
+        if($loweBound<=$price){
             return true;
         }else{
             return false;
+        }
+    }
+
+    public function checkDisLowThanUpperBoundAndGetResult($discountAmount)
+    {
+        $upperBound=$this->discountRow['upperBound'];
+
+        if($upperBound<=$discountAmount){
+            return $upperBound;
+        }else{
+            return $discountAmount;
         }
     }
 
@@ -187,7 +213,7 @@ class Discount extends Model
         $cart=$this->createCartModel(null,$storesId[0]);
 
         if ($cart->checkStoreInCartV2()){
-            return $this->checkAndGetDiscountAmount($price);
+            $this->checkAndGetDiscountAmount($price);
         }else{
            $this->message='this is not a discount code for this store';
         }
@@ -206,9 +232,41 @@ class Discount extends Model
         }
 
         if ($flag==1){
-            return $this->checkAndGetDiscountAmount($price);
+            $this->checkAndGetDiscountAmount($price);
         }else{
             $this->message='this is not a discount code for this store';
         }
+    }
+
+    public function getDiscountResult($cartId)
+    {
+        $order=new Order();
+        $order->id=$cartId;
+
+       $result=$order->getOrderData();
+       $result['discountAmount']=$this->amount;
+
+       return $result;
+    }
+
+    public function checkOrderDiscountCodeAndGetResult()
+    {
+        $this->setDiscountRow();
+        if (!$this->checkCodeExpiration()){
+            $this->checkCodeUserType();
+            return $this->amount;
+        }else{
+            return 0;
+        }
+    }
+
+    public function updateDiscountUsed()
+    {
+        $this->setDiscountRow();
+        Discount::where('id',$this->id)
+            ->update([
+                'isUsed' => true,
+                'usedCount'=> $this->discountRow['usedCount']+1
+            ]);
     }
 }

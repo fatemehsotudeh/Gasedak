@@ -82,9 +82,10 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/IncOrDecQuantity','CartController@IncOrDecQuantity');
     $router->post('/deleteCart','CartController@deleteCart');
     $router->post('/addAddressAndShipping','OrderController@addAddressAndShipping');
+    $router->post('/getOrderCosts','OrderController@getOrderCosts');
     $router->post('/registerDiscountCode','DiscountController@registerDiscountCode');
     $router->post('/paymentOrder','OrderController@paymentOrder');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
-$router->get('/verifyPayment/{amount}/{userId}','PaymentController@verifyPayment');
+$router->get('/verifyPayment/{amount}/{userId}/{cartId}','PaymentController@verifyPayment');
 
