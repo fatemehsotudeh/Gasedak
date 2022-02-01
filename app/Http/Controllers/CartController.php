@@ -149,8 +149,12 @@ class CartController extends Controller
 
         try{
             if ($cartHelper->updateBookQuantity($state)){
-                $cart=$cartHelper->checkAndGetCartData();
-                return response()->json(['data'=>$cart,'message' => 'update book quantity successfully'],200);
+                if (!$cartHelper->checkCartEmpty()){
+                    $cart=$cartHelper->checkAndGetCartData();
+                    return response()->json(['data'=>$cart,'message' => 'update book quantity successfully'],200);
+                }else{
+                    return response()->json(['message' => 'Your cart is empty'],200);
+                }
             }else{
                 return response()->json(['status'=>'error','message' => 'it is not possible to increase the number due to insufficient inventory'],400);
             }

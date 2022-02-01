@@ -6,11 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 use App\Libraries;
 
+use Morilog\Jalali\Jalalian;
+
 class CartHelper extends Model
 {
     //
     protected $fillable=[
-        'userId','bookId','storeId','cartId','bookRecord'
+        'userId','bookId','storeId','cartId','bookRecord','isDaily'
     ];
 
     protected $attributes=[
@@ -202,6 +204,7 @@ class CartHelper extends Model
         $helper=new Libraries\Helper();
 
         $order=new Order();
+        //date_default_timezone_set('Asia/Tehran');
         $orderDate=$helper->getCurrentDate();
 
         $order->where('id',$this->cartId)
@@ -246,15 +249,16 @@ class CartHelper extends Model
            ->select('carts.id','orders.orderDate','orders.trackingCode','stores.name')
            ->get();
 
+
        foreach ($carts as $key=>$cart){
            $this->cartId=$cart['id'];
            $booksId=$this->getBookIdFromCartsItem();
-
            $goodsImage=[];
            foreach ($booksId as $bookId){
                $this->bookId=$bookId;
                array_push($goodsImage,$this->getBookImage());
            }
+           $carts[$key]['orderDate'] = jdate($cart['orderDate'])->format('Y-m-d');
            $carts[$key]['goodsImage']=$goodsImage;
        }
 
@@ -454,7 +458,6 @@ class CartHelper extends Model
     public function updateBookQuantity($state)
     {
         $quantity=$this->getCartItemQuantity();
-
         if ($state=='up'){
             //increase quantity
             return $this->increaseQuantity($quantity);
@@ -526,13 +529,15 @@ class CartHelper extends Model
             'isAvailable'=>$isAvailable,
             'quantity'=> $quantity,
             'price'=>$newPrice,
-            'discountAmount'=>$newDis
+            'discountAmount'=>$newDis,
+            'isDaily'=>$this->isDaily
         ]);
     }
 
     public function getBookDiscount()
     {
         //check Daily discount
+        $this->isDaily=0;
         $result=$this->getDailyDiscount();
         if ($result=='no daily discount'){
             //get normal discount
@@ -550,7 +555,9 @@ class CartHelper extends Model
 
         if ($hasDailyDiscount){
             //check exp date
-            if (!$this->checkDailyDiscountExpDate($expDate)){
+            $dailyCount=$this->bookRecord['dailyCount'];
+            if (!$this->checkDailyDiscountExpDateAndCountLimit($expDate,$dailyCount)){
+                $this->isDaily=1;
                 return $this->bookRecord['discountAmount'];
             }else{
                 //has daily discount but expired
@@ -561,12 +568,12 @@ class CartHelper extends Model
         }
     }
 
-    public function checkDailyDiscountExpDate($expDate)
+    public function checkDailyDiscountExpDateAndCountLimit($expDate,$dailyCount)
     {
         $helper=new Libraries\Helper();
 
         $currentDate=$helper->getCurrentDate();
-        if ($expDate<$currentDate){
+        if ($expDate<$currentDate || $dailyCount==0){
             return true;
         }else{
             return false;
@@ -584,7 +591,7 @@ class CartHelper extends Model
         switch ($state){
             case 'change':
                 $message='تعداد انتخاب شده خاطر کافی نبودن موجودی به اندازه موجودی تغییر کرد';
-                $orderMessage="تعداد کتاب ".$goodName."به خاطر کم بودن موجودی به اندازه موجودی تغییر پیدا کرد";
+                $orderMessage=" تعداد کتاب ".$goodName."به خاطر کم بودن موجودی به اندازه موجودی تغییر پیدا کرد";
                 break;
             case 'withOutChange':
                 $message="";
@@ -596,7 +603,7 @@ class CartHelper extends Model
                 break;
             case 'available':
                 $message='موجود شد';
-                $orderMessage="";
+                $orderMessage="کتاب  ".$goodName." موجود شد";
         }
 
         $messages=$this->quantityChangeMessages;

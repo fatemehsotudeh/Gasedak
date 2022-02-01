@@ -85,6 +85,9 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getOrderCosts','OrderController@getOrderCosts');
     $router->post('/registerDiscountCode','DiscountController@registerDiscountCode');
     $router->post('/paymentOrder','OrderController@paymentOrder');
+    $router->post('/getOrderData','OrderController@getOrderData');
+    $router->post('/getOrderItemData','OrderController@getOrderItemData');
+    $router->post('/cancelOrder','OrderController@cancelOrder');
 });
 $router->get('/verifyIncreaseInventory/{amount}/{userId}','WalletController@verifyIncreaseInventory');
 $router->get('/verifyPayment/{amount}/{userId}/{cartId}','PaymentController@verifyPayment');

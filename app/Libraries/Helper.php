@@ -2,8 +2,6 @@
 
 namespace App\Libraries;
 
-
-
 use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\TicketStatus;

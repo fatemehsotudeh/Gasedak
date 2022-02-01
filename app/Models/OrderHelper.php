@@ -23,8 +23,13 @@ class OrderHelper extends Model
         $order->userId=$this->userId;
         $order->storeId=$this->storeId;
         $order->trackingCode=$code;
+        //date_default_timezone_set('Asia/Tehran');
         $order->orderDate=$helper->getCurrentDate();
         $order->orderStatusId=$this->getStatusId('waitingForPayment');
+
+        while (Order::where('trackingCode',$code)->exists()){
+            $code=$helper->generateAlphaNumericCode(12);
+        }
 
         $order->save();
     }
@@ -42,6 +47,5 @@ class OrderHelper extends Model
     {
         return OrderStatus::where('statusName',$status)->pluck('id')[0];
     }
-
 
 }

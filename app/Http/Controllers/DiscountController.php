@@ -47,7 +47,7 @@ class DiscountController extends Controller
         if ($discount->checkExistenceCode()){
             //first check if the code is expired or not
             if (!$discount->checkCodeExpiration()){
-               $discount->checkCodeUserType();
+                $discount->checkCodeUserType();
                 $order=new Order();
                 $order->id=$cartId;
                 $result=$order->checkAndGetRelatedResponse($cartHelper,'discount','',$discount);

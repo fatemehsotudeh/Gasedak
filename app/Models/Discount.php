@@ -69,7 +69,7 @@ class Discount extends Model
                 $this->checkDiscountRef();
                 break;
             case 'specified':
-                return $this->checkUserId();
+                $this->checkUserId();
         }
     }
 
@@ -80,7 +80,8 @@ class Discount extends Model
         if ($this->userId==$userId){
             $this->checkDiscountRef();
         }else{
-            return 'The code entered is not for you';
+            $this->amount=0;
+            $this->message='The code entered is not for you';
         }
     }
 
@@ -108,6 +109,7 @@ class Discount extends Model
         if($cartItem->checkAvailableBookInCartItem()){
             $this->checkStoreRef();
         }else{
+            $this->amount=0;
             $this->message='this discount code is for books, but you do not have this book in your cart';
         }
     }
@@ -165,8 +167,12 @@ class Discount extends Model
                 $dis=$disAmount;
             }
             $dis=$this->checkDisLowThanUpperBoundAndGetResult($dis);
-            $this->amount=$dis;
-            //echo $this->amount;
+            if ($dis<$this->getTotalDiscountAmount()){
+                $this->message='کاربر عزیر میزان تخفیف های قبلی از  کد تخفیف شما بیشتر است پیشنهاد ما به شما این است که در خرید های بعدی تان از این کد استفاده کنید';
+                $this->amount=0;
+            }else{
+                $this->amount=$dis;
+            }
         }else{
            $this->message='حداقل قیمت برای اعمال این کد باید'.$this->discountRow['lowerBound'].'باشد';
            $this->amount=0;
@@ -215,6 +221,7 @@ class Discount extends Model
         if ($cart->checkStoreInCartV2()){
             $this->checkAndGetDiscountAmount($price);
         }else{
+           $this->amount=0;
            $this->message='this is not a discount code for this store';
         }
 
@@ -235,6 +242,7 @@ class Discount extends Model
             $this->checkAndGetDiscountAmount($price);
         }else{
             $this->message='this is not a discount code for this store';
+            $this->amount=0;
         }
     }
 
@@ -244,7 +252,7 @@ class Discount extends Model
         $order->id=$cartId;
 
        $result=$order->getOrderData();
-       $result['discountAmount']=$this->amount;
+       $result['totalDiscountAmount']=$this->amount;
 
        return $result;
     }
@@ -268,5 +276,10 @@ class Discount extends Model
                 'isUsed' => true,
                 'usedCount'=> $this->discountRow['usedCount']+1
             ]);
+    }
+
+    public function getTotalDiscountAmount()
+    {
+        return Cart::where('id',$this->orderId)->pluck('totalDiscountAmount')[0];
     }
 }

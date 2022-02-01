@@ -11,6 +11,7 @@ class PaymentController extends Controller
     public function verifyPayment(Request $request)
     {
         $payment=new Payment();
-        return $payment->verifyPayment($request);
+        return $payment->verifyPayment($request,'orderPayment');
     }
+
 }

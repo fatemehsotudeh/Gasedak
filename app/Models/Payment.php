@@ -85,7 +85,7 @@ class Payment extends Model
         }
     }
 
-    public function verifyPayment($request)
+    public function verifyPayment($request,$state)
     {
         $authority = $request->Authority;
         $this->orderId=$request->cartId;
@@ -99,7 +99,7 @@ class Payment extends Model
             return response()->json(['status' =>'error','message'=>'curl error'],500);
         } else {
             //save deposit transaction
-            return $this->saveTransaction($request,$authority,'orderPayment');
+            return $this->saveTransaction($request,$authority,$state);
         }
     }
 
@@ -115,24 +115,26 @@ class Payment extends Model
             $depositTransaction->transactionStatus='Transation success';
 
             //Check that no duplicate transactions are recorded
-           // if (!DepositTransaction::where('authority',$authority)->exists()){
+            if (!DepositTransaction::where('authority',$authority)->exists()){
                 $depositTransaction->save();
 
                 switch ($state){
                     case 'orderPayment':
-                        $this->updateOrderStatus($depositTransaction->id);
-                        $this->updateDiscountCodes();
-                        $this->deleteCartAndUpdateOrder();
+                        $order=new Order();
+                        $order->id=$this->orderId;
+                        $order->userId=$this->userId;
+                        $order->updateOrderStatus($depositTransaction->id);
+                        $order->updateDiscountCodes();
+                        $order->deleteCartAndUpdateOrder();
                         break;
                     case 'wallet':
                         $this->updateWalletAmount($request);
                         break;
                 }
                 return response()->json(['message'=>'Transation success.'],200);
-          //  }
+            }
         }else{
             $depositTransaction->transactionStatus=$this->result['errors']['message'];
-
             //Check that no duplicate transactions are recorded
             if (!DepositTransaction::where('authority',$authority)->exists()){
                 $depositTransaction->save();
@@ -148,45 +150,4 @@ class Payment extends Model
         $balance=intval($request->amount)+$userBalance;
         $userFound->update(['balance'=>$balance]);
     }
-
-    public function updateOrderStatus($depositId)
-    {
-        $order=new OrderStatus();
-        Order::where('id',$this->orderId)
-            ->update([
-               'orderStatusId' => $order->getStatusId('progressing'),
-                'orderDate' => date('Y-m-d H:i:s'),
-                'isPaid' => true,
-                'paymentId' => $depositId
-            ]);
-    }
-
-    public function updateDiscountCodes()
-    {
-        $disCodeId=$this->getOrderDiscountCodeId();
-        if ($this->getOrderDiscountCodeId()!=null){
-            $discount=new Discount();
-            $discount->orderId=$this->orderId;
-            $discount->id=$disCodeId;
-            $discount->updateDiscountUsed();
-        }
-    }
-
-    public function getOrderDiscountCodeId()
-    {
-        return Order::where('id',$this->orderId)->pluck('discountCodeId')[0];
-    }
-
-    public function deleteCartAndUpdateOrder()
-    {
-        $order=new Order();
-        $order->id=$this->orderId;
-        $order->addOrderItems();
-
-        $cartHelper=new CartHelper();
-        $cartHelper->cartId=$this->orderId;
-        $cartHelper->deleteCartItems();
-        $cartHelper->deleteCart();
-    }
-
 }

@@ -100,11 +100,84 @@ class OrderController extends Controller
         $cartHelper=new CartHelper();
         $cartHelper->cartId=$cartId;
 
+        //Check the existence of the cart with this id
+        $cart=$cartHelper->checkExistenceCart();
+        if (!$cart){
+            return response()->json(['status'=>'error','message'=>'no cart was found with this id'],404);
+        }
+
         try {
+            $order->updateOrderPaymentType($paymentMethod);
             return $order->checkAndGetRelatedResponse($cartHelper,'payment',$paymentMethod);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
+    }
+
+    public function getOrderData(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        $order=new Order();
+        $order->userId=$identifiedUser->id;
+
+        try {
+            return $order->getOrdersInFourCategory();
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
+
+    public function getOrderItemData(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        //get input
+        $orderId=$request->orderId;
+
+        //Check that the inputs are not empty
+        if (empty($orderId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the orderId field']);
+        }
+
+        $order=new Order();
+        $order->id=$orderId;
+
+        try {
+            return $order->getOrderItem();
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+    }
+
+    public function cancelOrder(Request $request)
+    {
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        //get input
+        $orderId=$request->orderId;
+
+        //Check that the inputs are not empty
+        if (empty($orderId)){
+            return response()->json(['status' => 'error', 'message' => 'You must fill the orderId field']);
+        }
+
+        $order=new Order();
+        $order->id=$orderId;
+
+        try {
+            if ($order->canCanceledOrder()) {
+                return response()->json(['message'=> 'canceled order successfully'],200);
+            }else{
+                 return response()->json(['message'=> 'this order can not be canceled'],400);
+            }
+        }catch (\Exception $e){
+            return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
+        }
+
     }
 
 }

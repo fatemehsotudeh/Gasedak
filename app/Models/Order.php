@@ -5,6 +5,7 @@ namespace App\Models;
 
 use http\Env\Request;
 use Illuminate\Database\Eloquent\Model;
+use function Symfony\Component\VarDumper\Dumper\esc;
 
 class Order extends Model
 {
@@ -12,12 +13,117 @@ class Order extends Model
     protected $table='orders';
     protected $fillable=['id','userId','totalPrice','totalDiscountAmount','codeDiscountAmount'];
 
+    public function getOrdersInFourCategory()
+    {
+        $orders=$this->getAllUserOrders();
+        return [
+            'waitingForPayment' => $this->relatedCategoryOrderData('waitingForPayment'),
+            'progressing' => $this->relatedCategoryOrderData('progressing',$orders),
+            'canceled' => $this->relatedCategoryOrderData('canceled',$orders),
+            'done' => $this->relatedCategoryOrderData('done',$orders)
+        ];
+    }
+
+    public function getAllUserOrders()
+    {
+        return Order::where('orders.userId',$this->userId)->get();
+    }
+
+    public function relatedCategoryOrderData($category,$orders=null)
+    {
+        $orderStatus=new OrderStatus();
+        $statusId=$orderStatus->getStatusId($category);
+        $relatedOrders=[];
+
+        if ($category=='waitingForPayment'){
+            $relatedOrders= Order::where([['orders.userId',$this->userId],['orderStatusId',$statusId]])
+                ->join('carts','carts.id','orders.id')
+                ->get();
+        }else{
+            foreach ($orders as $order){
+                if ($order['orderStatusId']===$statusId){
+                    array_push($relatedOrders,$order);
+                }
+            }
+        }
+        return $relatedOrders;
+    }
+
+    public function getOrderItem()
+    {
+        $status=new OrderStatus();
+        $cartHelper=new CartHelper();
+
+        $orderStatus=$this->getOrderStatusId();
+        $waitingForPaymentStatusId=$status->getStatusId('waitingForPayment');
+
+        $cartHelper->cartId=$this->id;
+
+        if ($orderStatus==$waitingForPaymentStatusId){
+            $orderItems=$cartHelper->getCartItemData();
+        }else{
+            $orderItems=$this->getOrderItemData();
+        }
+
+        foreach ($orderItems as $key => $orderItem){
+            $cartHelper->bookId=$orderItem['bookId'];
+            $orderItems[$key]['imagePath']=$cartHelper->getBookImage();
+        }
+        return $orderItems;
+    }
+
+    public function canCanceledOrder()
+    {
+        $orderStatus=new OrderStatus();
+        $statusId=$orderStatus->getStatusId('progressing');
+        $orderStatusId=$this->getOrderStatusId();
+
+        if ($statusId==$orderStatusId){
+            $this->setOrderStatusCanceled();
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function setOrderStatusCanceled()
+    {
+        $orderStatus=new OrderStatus();
+        $canceledId=$orderStatus->getStatusId('canceled');
+
+        Order::where('id',$this->id)
+            ->update([
+                'orderStatusId' => $canceledId
+            ]);
+    }
+
+    public function getOrderStatusId()
+    {
+        return Order::where('id',$this->id)->pluck('orderStatusId')[0];
+    }
+
+    public function getOrderItemData()
+    {
+        return OrderItem::where('orderId',$this->id)
+            ->join('books','books.id','orderitems.bookId')
+            ->select('orderitems.*','books.name','books.publisher')
+            ->get();
+    }
+
     public function updateOrderShipperAndAddress()
     {
         Order::where('id',$this->id)
             ->update([
-               'shipperId'=>$this->getShipperId(),
+                'shipperId'=>$this->getShipperId(),
                 'userAddressId'=>$this->addressId
+            ]);
+    }
+
+    public function updateOrderPaymentType($method)
+    {
+        Order::where('id',$this->id)
+            ->update([
+               'paymentType'=> $method
             ]);
     }
 
@@ -48,7 +154,12 @@ class Order extends Model
     public function getOrderTotalCost()
     {
         $this->setOrderCosts();
-        return  ($this->totalPrice + $this->postCost - $this->totalDiscountAmount-$this->codeDiscountAmount);
+        if ($this->codeDiscountAmount!=0){
+            $discount=$this->codeDiscountAmount;
+        }else{
+            $discount=$this->totalDiscountAmount;
+        }
+        return  ($this->totalPrice + $this->postCost - $discount);
     }
 
     public function setOrderCosts()
@@ -64,7 +175,7 @@ class Order extends Model
            case 'instant':
                return $this->createPayment();
            case 'wallet':
-               return '';
+               return $this->checkWallet();
        }
     }
 
@@ -73,8 +184,23 @@ class Order extends Model
         $payment=new Payment();
         $payment->userId=$this->userId;
         $payment->amount=$this->getOrderTotalCost();
-        $payment->orderId=$this->orderId;
+        $payment->orderId=$this->id;
+
         return $payment->instantPayment();
+    }
+
+    public function checkWallet()
+    {
+        $wallet=Wallet::where('userId',$this->userId);
+        if ($wallet->exists()){
+            $balance=$wallet->pluck('balance')[0];
+            $orderCosts=$this->getOrderTotalCost();
+            if ($balance>=$orderCosts){
+                return true;
+            }
+            return false;
+        }
+        return false;
     }
 
     public function checkAndUpdate($cartHelper)
@@ -88,34 +214,44 @@ class Order extends Model
         $this->checkAndUpdate($cartHelper);
 
         $statusCode=200;
+
         switch ($state){
             case 'payment':
                 $this->orderId=$cartHelper->cartId;
                 $this->createDiscountObject($cartHelper);
                 $result=$this->paymentBasedSelectedMethod($paymentMethod);
-
-                if ($result['status']=='error'){
-                    $data='';
-                    $message=$result['message'];
-                    $statusCode=500;
-                }else{
-                    $data=$result['paymentLink'];
-                    $message='return payment link successFully';
+                $data='';
+                switch ($paymentMethod){
+                    case 'instant':
+                        if ($result['status']=='error'){
+                            $message=$result['message'];
+                            $statusCode=500;
+                        }else{
+                            $data=$result['paymentLink'];
+                            $message='return payment link successFully';
+                        }
+                        break;
+                    case 'wallet':
+                        if ($result){
+                            $message='payment from the wallet was successful';
+                        }else{
+                            $message='wallet balance is not enough';
+                            $statusCode=400;
+                        }
+                        break;
                 }
                 break;
-
             case 'discount':
                 $data=$discount->getDiscountResult($this->id);
                 $message='register discount code successfully';
                 break;
-
             default:
                 $data=$this->getOrderData();
                 $message='update order data successfully';
         }
 
-        if ($statusCode==500){
-            return response()->json(['status'=> 'error','message' => $message],500);
+        if ($statusCode!=200){
+            return response()->json(['status'=> 'error','message' => $message],$statusCode);
         }
 
         if ($cartHelper->getCartQuantity()==0){
@@ -123,9 +259,30 @@ class Order extends Model
         }
 
         if(sizeof($cartHelper->orderProcessMessages)!=0){
-            return response()->json(['data'=> $data,'message' => $cartHelper->orderProcessMessages],200);
+            $responseMessage=$cartHelper->orderProcessMessages;
+            $responseData=$data;
+            if ($paymentMethod=='wallet'){
+                $statusCode=400;
+            }
+        }else{
+            if ($paymentMethod=='wallet'){
+                $responseMessage=$message;
+                $responseData=$data;
+                $this->updateOrderStatus();
+                $this->updateDiscountCodes();
+                $this->decreaseWalletBalance();
+                $this->deleteCartAndUpdateOrder();
+            }else{
+                $responseMessage=$message;
+                $responseData=$data;
+            }
         }
-        return response()->json(['data'=> $data,'message' => $message],200);
+
+        if ($statusCode!=400){
+            return response()->json(['data'=> $responseData,'message' => $responseMessage],$statusCode);
+        }else{
+            return response()->json(['message' => $responseMessage],$statusCode);
+        }
     }
 
     public function saveDiscountCodeId($codeId)
@@ -160,7 +317,8 @@ class Order extends Model
 
     public function addOrderItems()
     {
-        $cartItems=CartItem::where('cartId',$this->id)->get();
+        $cartItems=CartItem::where([['cartId',$this->id],['isAvailable',1]])->get();
+        $disTypeCode=$this->checkDisTypeCode();
 
         foreach ($cartItems as $cartItem){
             $orderItem = OrderItem::firstOrNew([
@@ -171,8 +329,12 @@ class Order extends Model
                 'quantity' => $cartItem['quantity']
             ]);
             $orderItem->save();
-        }
+            $this->increaseGoodsInventory($cartItem['bookId'],$cartItem['quantity']);
+            if (!$disTypeCode && $cartItem['isDaily']){
+                $this->decreaseGoodsDailyDiscountCount($cartItem['bookId'],$cartItem['quantity']);
+            }
 
+        }
         $this->updateOrderQPD();
     }
 
@@ -188,5 +350,81 @@ class Order extends Model
             ]);
     }
 
+    public function updateOrderStatus($depositId=null)
+    {
+        $order=new OrderStatus();
+        Order::where('id',$this->id)
+            ->update([
+                'orderStatusId' => $order->getStatusId('progressing'),
+                'orderDate' => date('Y-m-d H:i:s'),
+                'isPaid' => true,
+                'paymentId' => $depositId
+            ]);
+    }
+
+    public function updateDiscountCodes()
+    {
+        $disCodeId=$this->getOrderDiscountCodeId();
+        if ($this->getOrderDiscountCodeId()!=null){
+            $discount=new Discount();
+            $discount->orderId=$this->id;
+            $discount->id=$disCodeId;
+            $discount->updateDiscountUsed();
+            $this->discountType='Code';
+        }else{
+            $this->discountType='other';
+        }
+    }
+
+    public function decreaseWalletBalance()
+    {
+        $wallet=Wallet::where('userId',$this->userId);
+        $balance=$wallet->pluck('balance')[0];
+        $orderCost=$this->getOrderTotalCost();
+
+        $wallet->update([
+            'balance' => $balance-$orderCost
+        ]);
+    }
+
+    public function deleteCartAndUpdateOrder()
+    {
+        $order=new Order();
+        $order->id=$this->id;
+        $order->addOrderItems();
+
+        $cartHelper=new CartHelper();
+        $cartHelper->cartId=$this->id;
+        $cartHelper->deleteCartItems();
+        $cartHelper->deleteCart();
+    }
+
+    public function checkDisTypeCode()
+    {
+        $disType=$this->discountType;
+        if ($disType=='code'){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function increaseGoodsInventory($bookId,$quantity)
+    {
+        $book=Book::where('id',$bookId);
+        $bookInventory=$book->pluck('inventory');
+        $book->update([
+            'inventory' => $bookInventory-$quantity
+        ]);
+    }
+
+    public function decreaseGoodsDailyDiscountCount($bookId,$quantity)
+    {
+        $book=Book::where('id',$bookId);
+        $bookDailyCount=$book->pluck('dailyCount');
+        $book->update([
+            'dailyCount' => $bookDailyCount-$quantity
+        ]);
+    }
 
 }

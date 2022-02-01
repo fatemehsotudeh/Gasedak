@@ -16,24 +16,6 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-        $amount=12000;
-       dd($amount."0");
-
-//        $oldPrice=12000;
-//        $newPrice=12000;
-//
-//        switch (true){
-//            case $oldPrice-$newPrice>0:
-//                return 'old bozorgeh';
-//            case $oldPrice-$newPrice<0:
-//                return 'new bozorgeh';
-//            case $oldPrice-$newPrice==0:
-//                return 'barabaran';
-//
-//        }
-
-//       $cartItem=CartItem::where('cartId',14);
-//        return $cartItem->first()['quantity'];
 
 //        $amount=12000;
 //        return ' قیمت محصول '.$amount.'  تومان کاهش یافت  ';
