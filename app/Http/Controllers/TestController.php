@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\CartItem;
+use App\Models\StoreAddress;
+use App\Models\StoreBook;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,35 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
+//        //$stores=StoreAddress::all();
+//        $listLat2=StoreAddress::all()->pluck('lat','id');
+//        $listLng2=StoreAddress::all()->pluck('lng','id');
+//
+//        return $listLat2;
+//
+//        $keyWord=$request->keyWord;
+//        $words=explode(" ",$keyWord);
+//        $books=Book::all();
+//
+//       // return $words;
+//        $checkResult=[];
+//
+//        $findBooks=[];
+//
+//        foreach ($books as $book){
+//            $check=[];
+//            foreach ($words as $index => $word){
+//                $check[0]=$this->searchInBookName($book['name'],$word);
+//                $check[1]=$this->searchInBookName($book['publisher'],$word);
+//                $check[2]=$this->searchInAuthors($book['authors'],$word);
+//                $check[3]=$this->searchInTranslators($book['translators'],$word);
+//            }
+//            if (in_array("true", $check)){
+//                array_push($findBooks,$book);
+//            }
+//        }
+//
+//        return $findBooks;
 
 //        $amount=12000;
 //        return ' قیمت محصول '.$amount.'  تومان کاهش یافت  ';
@@ -132,4 +163,59 @@ class TestController extends Controller
 //        return $result;
 
     }
+
+//    public function searchInBookName($name,$word)
+//    {
+//        if (strpos($name,$word)!==false){
+//            return true;
+//        }else{
+//            return false;
+//        }
+//    }
+//
+//    public function searchInAuthors($authors,$word)
+//    {
+//        if (sizeof($authors)==0){
+//            return false;
+//        }
+//
+//
+//        $flag=0;
+//        foreach ($authors as $author){
+//            if (strpos($author,$word)!==false){
+//                $flag=1;
+//            }
+//        }
+//
+//        if ($flag==1){
+//            return true;
+//        }else{
+//            return false;
+//        }
+//    }
+
+//    public function searchInTranslators($translators,$word)
+//    {
+//        if (is_array($translators)){
+//            if (sizeof($translators)==0){
+//                return false;
+//            }
+//        }else{
+//            return false;
+//        }
+//
+//        $flag=0;
+//        foreach ($translators as $translator){
+//            if (strpos($translator,$word)!==false){
+//                $flag=1;
+//            }
+//        }
+//
+//        if ($flag==1){
+//            return true;
+//        }else{
+//            return false;
+//        }
+//    }
+
 }

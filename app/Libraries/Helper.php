@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class Helper{
+
     public function generateRandomDigitsCode($length)
     {
         return rand(
@@ -124,46 +125,6 @@ class Helper{
         $words = explode($delimiter, $sentence);
 
         return $words[$index];
-    }
-
-    public function calculateUserDistanceToBookStores($userLat,$userLng)
-    {
-        $listLat2=StoreAddress::all()->pluck('lat','id');
-        $listLng2=StoreAddress::all()->pluck('lng','id');
-
-        $distances=[];
-
-        foreach ($listLng2 as $key=>$value){
-            $distance=$this->distance(floatval($userLat),floatval($userLng),floatval($listLat2[$key]),floatval($listLng2[$key]),'k');
-            $distances[$key]=$distance;
-        }
-
-        asort($distances);
-
-        return $distances;
-    }
-
-    public function calculateUserDistanceToBookStoresByKeyWord($userLat,$userLng,$keyWord)
-    {
-        $listLat2=StoreAddress::join('stores','stores.id','storesaddress.storeId')
-            ->where('stores.name','like','%'.$keyWord.'%')
-            ->pluck('lat','storesaddress.id');
-
-        $listLng2=StoreAddress::join('stores','stores.id','storesaddress.storeId')
-            ->where('stores.name','like','%'.$keyWord.'%')
-            ->pluck('lng','storesaddress.id');
-
-        $distances=[];
-
-        foreach ($listLng2 as $id=>$lng){
-            $distance=$this->distance(floatval($userLat),floatval($userLng),floatval($listLat2[$id]),floatval($listLng2[$id]),'k');
-            $distances[$id]=$distance;
-        }
-
-        //sort the distance from the user to the bookstores based on the nearest
-        asort($distances);
-
-        return $distances;
     }
 
     public function paginate($request,$collection,$perPage=10)

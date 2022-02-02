@@ -8,4 +8,8 @@ class StoreAddress extends Model
 {
     //
     protected $table='storesaddress';
+
+    protected $hidden = [
+        'password','email','username','IBAN'
+    ];
 }

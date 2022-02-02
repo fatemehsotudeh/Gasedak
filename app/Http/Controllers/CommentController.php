@@ -25,7 +25,7 @@ class CommentController extends Controller
         }
 
         if (empty($rate) && empty($message)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill one of the two rate or message fields']);
+            return response()->json(['status' => 'error', 'message' => 'You must fill one of the two rate or message fields'],400);
         }
 
         try {

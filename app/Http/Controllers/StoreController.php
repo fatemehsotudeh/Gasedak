@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\Store;
 use App\Models\StoreBook;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 class StoreController extends Controller
@@ -44,13 +45,20 @@ class StoreController extends Controller
     {
         $storeId=$request->id;
 
+        //Check that the storeId field is not empty
+        if (empty($storeId)){
+            return response()->json(['status' => 'error', 'message' => 'you must fill the storeId field']);
+        }
+
+        $storebook=new StoreBook();
+        $storebook->storeId=$storeId;
+
         try{
-            $storeBooks=Book::where('books.storeId',$storeId);
-            if ($storeBooks->exists()) {
-                $storeBooks=$storeBooks->paginate(10);
-                return response()->json(['message'=>'return store books successfully','data'=>$storeBooks],200);
+            if ($storebook->checkStoreHasBooks()){
+                $data=$storebook->getStoreAllBooksPaginated();
+                return response()->json(['data'=> $data,'message'=>'return store books successfully'],200);
             }else{
-                return response()->json(['status'=>'error','message'=>'no books were found for this store'],404);
+                return response()->json(['status' => 'error', 'message' => 'no books found for this store'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);

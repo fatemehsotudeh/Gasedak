@@ -9,6 +9,7 @@ use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\StoreBook;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 use App\Libraries;
@@ -27,52 +28,33 @@ class SearchController extends Controller
         $userLat=$request->lat;
         $userLng=$request->lng;
 
+        $storeBook=new StoreBook();
+
         //Check that lat and lng are not empty
         if (empty($userLat) or empty($userLng)) {
             return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
         }
 
         try {
-            $data=[];
             //If the keyword is empty, the store will list nearest to the user in order
             //If it is not empty, the stores whose names correspond to this keyword will be sorted in the nearest order
             if (empty($keyWord)){
-                $distances=$helper->calculateUserDistanceToBookStores($userLat,$userLng);
-
-                //Specify the distance from the user to the existing bookstores
-                //Show the list of bookstores based on the nearest to the user
-                foreach ($distances as $id=>$distance){
-                    $data[]=StoreAddress::where('storesaddress.id',$id)
-                        ->join('stores','stores.id','storesaddress.storeId')
-                        ->first()->makeHidden(['email','password','IBAN','username']);
-                }
+                $storesLatAndLng=$storeBook->getStoresLatAndLng();
+                $distancesAndIds=$storeBook->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
+                $data=$storeBook->getAllStoreDataBasedNearest($request,$distancesAndIds);
             }else{
-                //save keyWord in recent search table
                 $this->saveKeyWord($keyWord,$identifiedUser->id);
-
-                $distances=$helper->calculateUserDistanceToBookStoresByKeyWord($userLat,$userLng,$keyWord);
-
-                //Specify the distance from the user to the existing bookstores where name stores like keyWord
-                //Show the list of bookstores based on the nearest to the user
-                foreach ($distances as $id => $distance){
-                    $data[]=StoreAddress::where('storesaddress.id',$id)
-                        ->join('stores','stores.id','storesaddress.storeId')
-                        ->first()->makeHidden(['email','password','IBAN','username']);
-                }
+                $storesLatAndLng=$storeBook->getStoresLatAndLng(null,$keyWord);
+                $distancesAndIds=$storeBook->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
+                $data=$storeBook->getAllStoreDataBasedNearest($request,$distancesAndIds);
             }
 
-            if (sizeof($data)==0){
+            if ($data==[]){
                 return response()->json(['status' => 'error', 'message' => 'stores not found'], 404);
             }
 
-            //paginate: using helper class
+            return response()->json(['data' => $data, 'message' => 'stores were successfully returned based on the nearest to the user'], 200);
 
-            $collectionData=collect($data);
-            $paginateItems=$helper->paginate($request,$collectionData);
-
-//            $paginateItems['data']=array_values($paginateItems->toArray()['data']);
-
-            return response()->json(['data' => $paginateItems, 'message' => 'stores were successfully returned based on the nearest to the user'], 200);
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -96,20 +78,24 @@ class SearchController extends Controller
         $this->saveKeyWord($keyWord,$identifiedUser->id);
 
         try {
-            $store=Book::where('storeId',$storeId);
-            if ($store->exists()){
-                $isOpen=Store::where('id',$storeId)->pluck('isOpen')->first();
-                if ($isOpen==0){
-                    return response()->json(['status' => 'error', 'message' => 'this store is closed'],400);
-                }else{
-                    $storeBooks=$store->where('name','like','%'.$keyWord.'%');
-
-                    if ($storeBooks->exists()){
-                        $books=$storeBooks->paginate(10);
-                        return response()->json(['data' => $books, 'message' => 'return books successfully'],200);
+            $storeBooks=new StoreBook();
+            $storeBooks->storeId=$storeId;
+            if ($storeBooks->checkStoreHasBooks()){
+                if ($storeBooks->checkStoreOpen()){
+                    if ($storeBooks->checkStoreNotSuspended()){
+                        $allThisStoreBooks=$storeBooks->getStoreAllBooks();
+                        $booksFoundWithKeyword=$storeBooks->advanceSearchInBooks($allThisStoreBooks,$keyWord);
+                        if ($booksFoundWithKeyword!=[]){
+                            $data=$storeBooks->paginateData($request,$booksFoundWithKeyword);
+                            return response()->json(['data' => $data, 'message' => 'return books successfully'],200);
+                        }else{
+                            return response()->json(['status' => 'error', 'message' => 'no books were found for this store with this keyword'],404);
+                        }
                     }else{
-                        return response()->json(['status' => 'error', 'message' => 'no books were found for this store with this keyword'],404);
+                        return response()->json(['status' => 'error', 'message' => 'this store is suspended'],400);
                     }
+                }else{
+                    return response()->json(['status' => 'error', 'message' => 'this store is closed'],400);
                 }
             }else{
                 return response()->json(['status' => 'error', 'message' => 'bookstore not found with this id'],404);
@@ -134,38 +120,39 @@ class SearchController extends Controller
         }
 
         try {
-           $category=Category::where('title','like','%'.$category.'%');
-
-           if ($category->exists()){
-               $categoryId=$category->pluck('id')[0];
-               if (empty($keyWord)){
-                   $books=Book::where('categoryId',$categoryId);
-                   if ($books->exists()){
-                       $books=$this->getOrderByResults($books,$orderBy)->paginate(10);
-                       return response()->json(['data' =>$books, 'message' => 'books related to this category were returned'], 200);
-                   }else{
-                       return response()->json(['status' =>'error', 'message' => 'no books were found for this category'], 404);
-                   }
-               }else{
-                   //save keyWord in recent search table
+            $storeBook=new StoreBook();
+            $categories=$storeBook->getAllCategories();
+            if ($storeBook->checkExistenceCategory($categories,$category)){
+                $categoryId=$storeBook->categoryId;
+                $booksRelatedCategory=$storeBook->getBooksRelatedCategory();
+                $booksRelatedCategoryOrderBy=$storeBook->getOrderByResults($booksRelatedCategory,$orderBy);
+                if (empty($keyWord)){
+                    if (sizeof($booksRelatedCategoryOrderBy)!=0){
+                        $data=$storeBook->paginateData($request,$booksRelatedCategoryOrderBy);
+                        return response()->json(['data' =>$booksRelatedCategoryOrderBy, 'message' => 'books related to this category were returned'], 200);
+                    }else{
+                        return response()->json(['status' =>'error', 'message' => 'no books were found for this category'], 404);
+                    }
+                }else{
+                    //save keyWord in recent search table
                    $this->saveKeyWord($keyWord,$identifiedUser->id);
-
-                   $books=Book::where([['categoryId',$categoryId],['name','like','%'.$keyWord.'%']]);
-                   if ($books->exists()){
-                       $books=$this->getOrderByResults($books,$orderBy)->paginate(10);
-                       return response()->json(['data' =>$books, 'message' => 'books related to this category and keyword were returned'], 200);
+                   $foundBooksRelatedKeyword=$storeBook->advanceSearchInBooks($booksRelatedCategoryOrderBy,$keyWord);
+                   if (sizeof($foundBooksRelatedKeyword)!=0){
+                       $data=$storeBook->paginateData($request,$foundBooksRelatedKeyword);
+                       return response()->json(['data' =>$data, 'message' => 'books related to this category and keyword were returned'], 200);
                    }else{
                        return response()->json(['status' =>'error', 'message' => 'no books were found for this category or keyWord'], 404);
                    }
-               }
-           }else{
-               return response()->json(['status' =>'error', 'message' => 'this category does not exist at all'], 404);
-           }
+                }
+            }else{
+                return response()->json(['status' =>'error', 'message' => 'this category does not exist at all'], 404);
+            }
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
 
     }
+
     public function saveKeyWord($keyWord,$userId)
     {
         //If the keywords for this user are less than 5, this keyword will be added. Otherwise,
@@ -235,37 +222,32 @@ class SearchController extends Controller
             return response()->json(['status' => 'error', 'message' => 'You must fill the keyWord field']);
         }
 
-        //save keyWord in recent search table
-        $this->saveKeyWord($keyWord,$identifiedUser->id);
-
         try {
-            $book=Book::where('name','like','%'.$keyWord.'%')
-                ->orWhere('originality',$keyWord)
-                ->orWhere('publisher','like','%'.$keyWord.'%')
-                ->orWhere('authors','like','%'.$keyWord.'%')
-                ->orWhere('translators','like','%'.$keyWord.'%')
-                ->orWhere('ISBN',$keyWord);
+            //save keyWord in recent search table
+            $this->saveKeyWord($keyWord,$identifiedUser->id);
+            $storeBook=new StoreBook();
+            $allBooks=$storeBook->getAllBooks();
+            $allStores=$storeBook->getAllStores();
+            $foundBooksWithKeyword=$storeBook->advanceSearchInBooks($allBooks,$keyWord);
+            $foundStoresWithThisKeyword=$storeBook->advanceSearchInStores($allStores,$keyWord);
+            $foundResults=[];
+            $foundResults['books']=$foundBooksWithKeyword;
+            $foundResults['stores']=$foundStoresWithThisKeyword;
 
-
-            $store=Store::where('name','like','%'.$keyWord.'%');
-
-            $data=[];
-
-            if ($book->exists()){
-                $books=$book->paginate(10);
-                $data['books']=$books;
+            if (sizeof($foundResults['books'])!=0){
+                $foundResults['books']=$storeBook->paginateData($request,$foundResults['books']);
             }
 
-            if ($store->exists()){
-                $stores=$store->paginate(10);
-                $data['stores']=$stores;
+            if (sizeof($foundResults['stores'])!=0){
+                $foundResults['stores']=$storeBook->paginateData($request,$foundResults['stores']);
             }
 
-            if (sizeof($data)>0){
-                return response()->json(['data' => $data, 'message' => 'list of books or bookstores that have this keyword in their name was successfully returned'], 200);
+            if (sizeof($foundResults['stores'])>0 || sizeof($foundResults['books'])>0){
+                return response()->json(['data' => $foundResults, 'message' => 'list of books or bookstores that have this keyword was successfully returned'], 200);
             }else{
                 return response()->json(['status' => 'error', 'message' => 'could not find book or bookstore with the keyword'], 404);
             }
+
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
@@ -287,26 +269,6 @@ class SearchController extends Controller
             }
         }catch (\Exception $e){
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    public function getOrderByResults($data,$orderBy)
-    {
-        switch ($orderBy){
-            case 'جدید ترین':
-                return $data->orderBy('created_at','DESC');
-                break;
-            case 'پرفروش ترین':
-                return $data->orderBy('purchaseCount','DESC');
-                break;
-            case 'گران ترین':
-                return $data->orderByRaw('(price - discountAmount) DESC');
-                break;
-            case 'ارزان ترین':
-                return $data->orderByRaw('(price - discountAmount)');
-                break;
-            default:
-                return $data;
         }
     }
 
