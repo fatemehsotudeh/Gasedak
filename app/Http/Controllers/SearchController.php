@@ -85,8 +85,9 @@ class SearchController extends Controller
                     if ($storeBooks->checkStoreNotSuspended()){
                         $allThisStoreBooks=$storeBooks->getStoreAllBooks();
                         $booksFoundWithKeyword=$storeBooks->advanceSearchInBooks($allThisStoreBooks,$keyWord);
-                        if ($booksFoundWithKeyword!=[]){
-                            $data=$storeBooks->paginateData($request,$booksFoundWithKeyword);
+                        $booksFoundWithImageAndUpdatedDiscounts=$storeBooks->checkBookDiscountsAndAddImage($booksFoundWithKeyword);
+                        if ($booksFoundWithImageAndUpdatedDiscounts!=[]){
+                            $data=$storeBooks->paginateData($request,$booksFoundWithImageAndUpdatedDiscounts);
                             return response()->json(['data' => $data, 'message' => 'return books successfully'],200);
                         }else{
                             return response()->json(['status' => 'error', 'message' => 'no books were found for this store with this keyword'],404);
@@ -125,7 +126,8 @@ class SearchController extends Controller
             if ($storeBook->checkExistenceCategory($categories,$category)){
                 $categoryId=$storeBook->categoryId;
                 $booksRelatedCategory=$storeBook->getBooksRelatedCategory();
-                $booksRelatedCategoryOrderBy=$storeBook->getOrderByResults($booksRelatedCategory,$orderBy);
+                $booksWithPriceAndImage=$storeBook->addMinimumPriceAndDiscountToBooksFromStores($booksRelatedCategory);
+                $booksRelatedCategoryOrderBy=$storeBook->getOrderByResults($booksWithPriceAndImage,$orderBy);
                 if (empty($keyWord)){
                     if (sizeof($booksRelatedCategoryOrderBy)!=0){
                         $data=$storeBook->paginateData($request,$booksRelatedCategoryOrderBy);
@@ -189,11 +191,13 @@ class SearchController extends Controller
         $this->saveKeyWord($hashtag,$identifiedUser->id);
 
         try {
-            $book=Book::where('hashtags','like','%'.$hashtag.'%');
+            $storeBook=new StoreBook();
+            $book=Book::where('hashtags','like','%'.$hashtag.'%')->get();
+            $booksWithPriceAndImage=$storeBook->addMinimumPriceAndDiscountToBooksFromStores($book);
             $store=Store::where('hashtags','like','%'.$hashtag.'%');
             $data=[];
-            if ($book->exists()){
-                $books=$book->paginate(10);
+            if ($booksWithPriceAndImage!=[]){
+                $books=$storeBook->paginateData($request,$booksWithPriceAndImage);
                 $data['books']=$books;
             }
             if ($store->exists()){
@@ -229,9 +233,11 @@ class SearchController extends Controller
             $allBooks=$storeBook->getAllBooks();
             $allStores=$storeBook->getAllStores();
             $foundBooksWithKeyword=$storeBook->advanceSearchInBooks($allBooks,$keyWord);
+            $booksWithPriceAndImage=$storeBook->addMinimumPriceAndDiscountToBooksFromStores($foundBooksWithKeyword);
             $foundStoresWithThisKeyword=$storeBook->advanceSearchInStores($allStores,$keyWord);
             $foundResults=[];
-            $foundResults['books']=$foundBooksWithKeyword;
+            $foundResults['books']=$booksWithPriceAndImage;
+
             $foundResults['stores']=$foundStoresWithThisKeyword;
 
             if (sizeof($foundResults['books'])!=0){

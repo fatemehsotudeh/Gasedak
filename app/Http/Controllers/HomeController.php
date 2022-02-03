@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\GasedakSuggestion;
 use App\Models\SpecialPublicationBook;
 use App\Models\Store;
+use App\Models\StoreBook;
 use App\Models\UserFavoriteData;
 use Illuminate\Http\Request;
 
@@ -27,6 +28,7 @@ class HomeController extends Controller
         try {
             $data['banners']=$this->getBanners();
             $data['userExclusiveOffers']=$this->getUserExclusiveOffer($identifiedUser->id)->take(10)->values();
+            $data['dailyDiscounts']=$this->getBooksWithDailyDiscounts($request);
             $data['newestBooks']=$this->getNewestBooks();
             $data['bestSellingBooks']=$this->getBestSellingBooks();
             $data['gasedakOffers']=$this->getGasedakOffers();
@@ -175,18 +177,23 @@ class HomeController extends Controller
         //they are sorted in descending order based on the discount.
         //if the discount is equal to several things,
         //they are sorted according to the latest sort.
-        return Book::orderBy('percentDiscountAmount','DESC')
-            ->orderBy('created_at','DESC')
-            ->take(10)
-            ->get();
+        $storeBook=new StoreBook();
+        $books=Book::all();
+        $booksWithMinimumPriceInStores=$storeBook->addMinimumPriceAndDiscountToBooksFromStores($books);
+        return $storeBook->orderByMostDiscount($booksWithMinimumPriceInStores);
     }
 
     public function getGasedakOffers()
     {
-        return GasedakSuggestion::join('books','books.id','ghasedaksuggestions.bookId')
+        $storeBook=new StoreBook();
+        $books=GasedakSuggestion::join('books','books.id','ghasedaksuggestions.bookId')
             ->orderBy('ghasedaksuggestions.created_at','DESC')
             ->take(10)
             ->get();
+
+        $storeBook->addImageToBooks($books,'id');
+
+        return $books;
     }
 
     public function latestPublications()
@@ -202,7 +209,8 @@ class HomeController extends Controller
 
         $index=0;
         foreach ($publications->get()->toArray() as $publication){
-            $firstPublicationBooks=Book::where('books.storeId',$publicationsIds[$index])
+            $firstPublicationBooks=StoreBook::where('storebooks.storeId',$publicationsIds[$index])
+                ->join('books','books.id','storebooks.bookId')
                 ->orderBy('books.created_at','DESC')
                 ->take(10)
                 ->get();
@@ -212,6 +220,7 @@ class HomeController extends Controller
             $index++;
         }
         return $publicationBooks;
+
     }
 
     public function getBanners()
@@ -220,4 +229,12 @@ class HomeController extends Controller
             ->take(10)
             ->get();
     }
+
+    public function getBooksWithDailyDiscounts($request)
+    {
+        $helper=new Libraries\Helper();
+        $storeBook=new StoreBook();
+        return $helper->paginate($request,$storeBook->getAllBooksWithIsDailyTrueAndNotExpired());
+    }
+
 }

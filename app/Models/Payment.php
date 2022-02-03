@@ -9,10 +9,10 @@ class Payment extends Model
     //
     protected $fillable=['userId','amount','result','orderId'];
 
-    public function instantPayment()
+    public function instantPayment($paymentType='instant')
     {
         //Connecting to zarinpal port
-        $data = $this->getRequestData('instant');
+        $data = $this->getRequestData($paymentType);
 
         if (!$this->connectToZarinpalApi($data,'https://api.zarinpal.com/pg/v4/payment/request.json')) {
             return ['status'=> 'error','message'=> 'curl error'];
@@ -88,7 +88,9 @@ class Payment extends Model
     public function verifyPayment($request,$state)
     {
         $authority = $request->Authority;
-        $this->orderId=$request->cartId;
+        if ($request->cartId!=''){
+            $this->orderId=$request->cartId;
+        }
         $data = [
             "merchant_id" => env('merchant_id'),
             "authority" => $authority,

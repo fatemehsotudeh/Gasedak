@@ -49,16 +49,20 @@ class CartController extends Controller
         //If the shopping cart was created correctly for this store before, it will be added to the products of the same store
         //Otherwise a new cart will be created for the store
         try{
-            $checkInventory=$cartHelper->checkInventory();
-            if ($checkInventory){
-                $resultStoreInCart=$cartHelper->checkStoreInCart();
-                if ($cartHelper->createOrUpdateCart($resultStoreInCart)){
-                    return response()->json(['message' => 'add book to cart successfully'],200);
+            if ($cartHelper->checkStoreNotSuspendedOrClose()){
+                $checkInventory=$cartHelper->checkInventory();
+                if ($checkInventory){
+                    $resultStoreInCart=$cartHelper->checkStoreInCart();
+                    if ($cartHelper->createOrUpdateCart($resultStoreInCart)){
+                        return response()->json(['message' => 'add book to cart successfully'],200);
+                    }else{
+                        return response()->json(['status' => 'error','message' => 'this book has already been added to the cart'],409);
+                    }
                 }else{
-                    return response()->json(['status' => 'error','message' => 'this book has already been added to the cart'],409);
+                   return response()->json(['status' => 'error','message' => 'the stock of this book is zero and it is not possible to add it to the cart'],400);
                 }
             }else{
-                return response()->json(['status' => 'error','message' => 'The stock of this book is zero and it is not possible to add it to the cart'],400);
+                return response()->json(['status' => 'error','message' => 'the store is closed or suspended'],400);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
@@ -105,7 +109,12 @@ class CartController extends Controller
         }
 
         try {
-            return $cartHelper->checkAndGetCartData();
+            if (!$cartHelper->checkCartEmpty()){
+                $cartItem=$cartHelper->checkAndGetCartData();
+                return response()->json(['data'=> $cartItem ,'message' => 'return cart item data successfully'],200);
+            }else{
+                return response()->json(['data'=> '' ,'message' => 'Your cart is empty'],200);
+            }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
@@ -151,9 +160,9 @@ class CartController extends Controller
             if ($cartHelper->updateBookQuantity($state)){
                 if (!$cartHelper->checkCartEmpty()){
                     $cart=$cartHelper->checkAndGetCartData();
-                    return response()->json(['data'=>$cart,'message' => 'update book quantity successfully'],200);
+                    return response()->json(['data'=> $cart ,'message' => 'update book quantity successfully'],200);
                 }else{
-                    return response()->json(['message' => 'Your cart is empty'],200);
+                    return response()->json(['data'=> '' ,'message' => 'Your cart is empty'],200);
                 }
             }else{
                 return response()->json(['status'=>'error','message' => 'it is not possible to increase the number due to insufficient inventory'],400);
@@ -192,4 +201,5 @@ class CartController extends Controller
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
     }
+
 }

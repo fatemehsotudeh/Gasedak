@@ -72,6 +72,11 @@ class StoreBook extends Model
         return Book::all();
     }
 
+    public function getAllStoresWithThisBook()
+    {
+        return StoreBook::where('bookId',$this->bookId)->get();
+    }
+
     public function getStoreAllBooksPaginated()
     {
         return StoreBook::where('storeId',$this->storeId)
@@ -330,28 +335,188 @@ class StoreBook extends Model
     public function getBooksRelatedCategory()
     {
         return Book::where('categoryId',$this->categoryId)
-                ->join('storebooks','storebooks.bookId','books.id')
-                ->select('storebooks.*','books.*','storebooks.created_at','storebooks.updated_at');
+                ->get();
     }
 
-    public function getOrderByResults($data,$orderBy)
+//    public function getOrderByResults($data,$orderBy)
+//    {
+//        switch ($orderBy){
+//            case 'جدید ترین':
+//                return $data->orderBy('created_at','DESC')->get();
+//                break;
+//            case 'پرفروش ترین':
+//                return $data->orderBy('purchaseCount','DESC')->get();
+//                break;
+//            case 'گران ترین':
+//                return $data->orderByRaw('(price - discountAmount) DESC')->get();
+//                break;
+//            case 'ارزان ترین':
+//                return $data->orderByRaw('(price - discountAmount)')->get();
+//                break;
+//            default:
+//                return $data->get();
+//        }
+//    }
+
+    public function getOrderByResults($array,$orderBy)
     {
+        $collectArray = collect($array);
+        $orderArray=[];
+
         switch ($orderBy){
             case 'جدید ترین':
-                return $data->orderBy('created_at','DESC')->get();
+                $orderArray = $collectArray->sortBy('created_at')->reverse()->toArray();
                 break;
             case 'پرفروش ترین':
-                return $data->orderBy('purchaseCount','DESC')->get();
+                $orderArray = $collectArray->sortBy('purchaseCount')->reverse()->toArray();
                 break;
             case 'گران ترین':
-                return $data->orderByRaw('(price - discountAmount) DESC')->get();
+                $orderArray = $collectArray->sortBy(function($array) {
+                    return $array['price']-$array['discountAmount'];
+                })->reverse()->toArray();
                 break;
             case 'ارزان ترین':
-                return $data->orderByRaw('(price - discountAmount)')->get();
+                $orderArray = $array->sortBy(function($array) {
+                    return $array['price']-$array['discountAmount'];
+                })->toArray();
                 break;
-            default:
-                return $data->get();
         }
+
+        return array_values($orderArray);
+    }
+
+    public function addMinimumPriceAndDiscountToBooksFromStores($books)
+    {
+        $helper=new Libraries\Helper();
+
+        foreach ($books as $book) {
+            $storebooks=new StoreBook();
+            $storebooks->bookId=$book['id'];
+
+            $price=[];$discountAmount=[];$percentDiscountAmount=[];$isDaily=[];$expDate=[];$dailyCount=[];
+            $storesWithThisBook=$storebooks->getAllStoresWithThisBook();
+
+            foreach ($storesWithThisBook as $storebook){
+                $price[$storebook['storeId']]=$storebook['price'];
+                $discountAmount[$storebook['storeId']]=$storebook['discountAmount'];
+                $percentDiscountAmount[$storebook['storeId']]=$storebook['percentDiscountAmount'];
+                $isDaily[$storebook['storeId']]=$storebook['isDailyDiscount'];
+                $dailyCount[$storebook['storeId']]=$storebook['dailyCount'];
+                $expDate[$storebook['storeId']]=$storebook['dailyDiscountExpDate'];
+            }
+
+            $discountsAfterCheck=$this->checkAndGetDiscount($discountAmount,$isDaily,$expDate,$dailyCount);
+            $percentDiscount=$this->checkAndGetDiscount($percentDiscountAmount,$isDaily,$expDate,$dailyCount);
+            $priceAfterDiscount=$this->getPriceAfterDiscount($price,$discountsAfterCheck);
+            $shufflePriceAfterDiscount=$helper->shuffleAssociativeArray($priceAfterDiscount);
+            $storeId=$this->getStoreIdWithMinimumPrices($shufflePriceAfterDiscount);
+            $book['storeId']=$storeId;
+            $book['price']=$price[$storeId];
+            $book['discountAmount']=$discountsAfterCheck[$storeId];
+            $book['percentDiscountAmount']=$percentDiscount[$storeId];
+            $book['isDaily']=$isDaily[$storeId];
+            $this->bookId=$book['id'];
+            $book['image']=$this->getBookImage();
+        }
+
+        return $books;
+    }
+
+    public function checkAndGetDiscount($discountAmounts,$isDailies,$expDates,$dailyCounts)
+    {
+        $discountsAfterCheck=[];
+        foreach ($isDailies as $storeId => $isDaily){
+            if ($isDaily){
+                if ($this->checkDailyDiscountNotExpired($expDates[$storeId],$dailyCounts[$storeId])){
+                    $discountsAfterCheck[$storeId]=$discountAmounts[$storeId];
+                }else{
+                    $discountsAfterCheck[$storeId]=0;
+                }
+            }else{
+                $discountsAfterCheck[$storeId]=$discountAmounts[$storeId];
+            }
+        }
+        return $discountsAfterCheck;
+    }
+
+    public function checkDailyDiscountNotExpired($expDate,$dailyCount)
+    {
+        $helper=new Libraries\Helper();
+
+        $currentDate=$helper->getCurrentDate();
+        if ($expDate<$currentDate || $dailyCount==0){
+            return false;
+        }else{
+            return true;
+        }
+    }
+
+    public function getPriceAfterDiscount($prices,$discounts)
+    {
+        $discountedPrice=[];
+        foreach ($prices as $storeId => $price){
+            $discountedPrice[$storeId]=$price-$discounts[$storeId];
+        }
+        return $discountedPrice;
+    }
+
+    public function getStoreIdWithMinimumPrices($array)
+    {
+        $min = min($array);
+        return array_search($min, $array);
+    }
+
+    public function addImageToBooks($books,$id='bookId')
+    {
+        foreach ($books as $book){
+            $this->bookId=$book[$id];
+            $book['image']=$this->getBookImage();
+        }
+    }
+
+    public function checkBookDiscountsAndAddImage($books)
+    {
+        foreach ($books as $book){
+            if ($book['isDailyDiscount']){
+                if ($this->checkDailyDiscountNotExpired($book['dailyCount'],$book['dailyDiscountExpDate'])){
+                    $discount=$book['discountAmount'];
+                }else{
+                    $discount=0;
+                }
+            }else{
+                $discount=$book['discountAmount'];
+            }
+            $book['discountAmount']=$discount;
+            $this->bookId=$book['id'];
+            $book['image']=$this->getBookImage();
+        }
+        return $books;
+    }
+
+    public function getAllBooksWithIsDailyTrueAndNotExpired()
+    {
+        $helper=new Libraries\Helper();
+        $currentDate=$helper->getCurrentDate();
+
+        $books=StoreBook::where([
+            ['isDailyDiscount',true],
+            ['dailyCount','!=',0],
+            ['dailyDiscountExpDate','>=',$currentDate]
+        ])->join('books','books.id','storebooks.bookId')->get();
+
+        $this->addImageToBooks($books);
+        return $books;
+    }
+
+    public function orderByMostDiscount($books)
+    {
+        $collectBook = collect($books);
+
+         $orderedBook=$collectBook->sortBy(function ($books, $key) {
+                 return $books['percentDiscountAmount'].$books['created_at'];
+                })->take(10)->toArray();
+
+         return array_values($orderedBook);
     }
 
 }

@@ -39,14 +39,15 @@ class Helper{
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
 
-    public function imageSavePath($name)
+    public function imageSavePath($userId,$type)
     {
-        return base_path()."\public\uploads\\".$name;
+        $imageType=explode('/',$type);
+        return base_path()."\public\uploads\\".$userId.".".$imageType[1];
     }
 
     public function fileSavePath($name)
     {
-        return  $this->imageSavePath($name);
+        return  base_path()."\public\uploads\\".$name;
     }
 
     public function maxImageSize()
@@ -145,6 +146,21 @@ class Helper{
     {
        // date_default_timezone_set('Asia/Tehran');
         return date('Y-m-d H:i:s');
+    }
+
+    public function shuffleAssociativeArray($array)
+    {
+        $sorted_array = $array;
+        $shuffled_array = array();
+        $keys = array_keys($sorted_array);
+        shuffle($keys);
+
+        foreach ($keys as $key)
+        {
+            $shuffled_array[$key] = $sorted_array[$key];
+        }
+
+        return $shuffled_array;
     }
 
 };

@@ -29,7 +29,7 @@ class UserAvatarController extends Controller
                 if ($imageSize<=$maxSize){
                     //check type of file
                     if ($helper->isAllowedImageType($request->file('image')->getMimeType())){
-                        $imageSavePath=$helper->imageSavePath($imageOriginalName);
+                        $imageSavePath=$helper->imageSavePath($identifiedUser->id,$request->file('image')->getMimeType());
 
                         if(move_uploaded_file($uploadImagePath,$imageSavePath)){
                             $userAvatar=new UserAvatar();
@@ -70,10 +70,16 @@ class UserAvatarController extends Controller
             $user=UserAvatar::where('userId',$identifiedUser->id);
             if ($user->exists()){
                 $imagePath=$user->pluck('imagePath')[0];
-                unlink($imagePath);
-                if ($user->update(['imagePath'=> null])){
-                    return response()->json(['message' =>'delete image successfully'],200);
+                if ($imagePath!=null){
+                    unlink($imagePath);
+                    if ($user->update(['imagePath'=> null])){
+                        return response()->json(['message' =>'delete image successfully'],200);
+                    }
+                }else{
+                    return response()->json(['status' => 'error','message'=> 'the photo has already been deleted'],400);
                 }
+            }else{
+                return response()->json(['status'=> 'error','message'=> 'photo not uploaded by user to delete'],404);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);

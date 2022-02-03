@@ -174,5 +174,6 @@ class SmsTokenController extends Controller
         //Because it does exactly the following method, instead of repeating the code, that method is called
         return $this->requestResetPassToken($request);
     }
+
 }
 

@@ -57,6 +57,15 @@ class CartHelper extends Model
         }
     }
 
+    public function checkStoreNotSuspendedOrClose()
+    {
+        if(Store::where([['id',$this->storeId],['isOpen',true],['isSuspended',false]])->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public function checkStoreInCart()
     {
         $cart=Cart::where([['storeId',$this->storeId],['userId',$this->userId]]);
@@ -648,4 +657,5 @@ class CartHelper extends Model
     {
         return Cart::where('id',$this->cartId)->pluck('totalQuantity')[0];
     }
+
 }

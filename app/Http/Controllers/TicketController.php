@@ -176,7 +176,6 @@ class TicketController extends Controller
             //Delete the original ticket message
             $ticketsMessageList->shift(1);
 
-
             //If the array was empty, there is no message for this ticket
             //else return messages successfully
             if (sizeof($ticketsMessageList) > 0){

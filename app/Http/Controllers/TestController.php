@@ -18,6 +18,65 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
+        $store=new StoreBook();
+        return $store->getAllBooksWithIsDailyTrue();
+
+
+//        $array1=[
+//            [
+//                'price' => 130000,
+//                'discountAmount' => 1000,
+//            ],
+//            [
+//                'price' => 230000,
+//                'discountAmount' => 30000,
+//            ],
+//            [
+//                'price' => 34000,
+//                'discountAmount' => 12,
+//            ]
+//        ];
+
+//        $array = collect($array1)->sortBy('discountAmount')->toArray();
+//        return array_values($array);
+
+    }
+//        $array = array( '1' => 3, '8' => 0 ,'3' =>0);
+//        $suffle=$this->shuffleAssociativeArray($array);
+//        $min = min($suffle);
+//        $index = array_search($min, $suffle);
+        //echo $index;
+//        $books = Book::all();
+//
+//        foreach ($books as $book) {
+//            $storebooks=new StoreBook();
+//            $storebooks->bookId=$book['id'];
+//
+//            $price=[];$discountAmount=[];$isDaily=[];$expDate=[];$dailyCount=[];
+//            $storesWithThisBook=$storebooks->getAllStoresWithThisBook();
+//
+//            foreach ($storesWithThisBook as $storebook){
+//                $price[$storebook['storeId']]=$storebook['price'];
+//                $discountAmount[$storebook['storeId']]=$storebook['discountAmount'];
+//                $isDaily[$storebook['storeId']]=$storebook['isDailyDiscount'];
+//                $dailyCount[$storebook['storeId']]=$storebook['dailyCount'];
+//                $expDate[$storebook['storeId']]=$storebook['dailyDiscountExpDate'];
+//            }
+//
+//            $discountsAfterCheck=$this->checkAndGetDiscount($discountAmount,$isDaily,$expDate,$dailyCount);
+//            $priceAfterDiscount=$this->getPriceAfterDiscount($price,$discountsAfterCheck);
+//            $shufflePriceAfterDiscount=$this->shuffleAssociativeArray($priceAfterDiscount);
+//            $storeId=$this->getStoreIdWithMinimumPrices($shufflePriceAfterDiscount);
+//            $book['storeId']=$storeId;
+//            $book['price']=$price[$storeId];
+//            $book['discountAmount']=$discountsAfterCheck[$storeId];
+//            $book['isDaily']=$isDaily[$storeId];
+//        }
+//
+//        return $books;
+
+
+
 //        //$stores=StoreAddress::all();
 //        $listLat2=StoreAddress::all()->pluck('lat','id');
 //        $listLng2=StoreAddress::all()->pluck('lng','id');
@@ -60,7 +119,7 @@ class TestController extends Controller
 //        $book->ISBN=45794534;
 //        $book->translators=["الیف شافاک"];
 //        $book->authors=["ارسلان فصیحی"];
-       // $book->save();
+    // $book->save();
 //          return response()->json(Book::where('id',1)->pluck('translators')[0]);
 //        $list=UserAddress::where('postalAddress','LIKE','%پلاک2%')->get();
 //        return $list;
@@ -74,7 +133,7 @@ class TestController extends Controller
 //            'phoneNumber'='regex:/^[0-9]{11}$/i'
 //        ]);
 
-        //upload file test
+    //upload file test
 //        if ($request->has('image')){
 //            return $request->file('image')."\n";
 
@@ -162,7 +221,6 @@ class TestController extends Controller
 //
 //        return $result;
 
-    }
 
 //    public function searchInBookName($name,$word)
 //    {
@@ -216,6 +274,97 @@ class TestController extends Controller
 //        }else{
 //            return false;
 //        }
+//    }
+
+//    public function shuffleAssociativeArray($array)
+//    {
+//        $sorted_array = $array;
+//        $shuffled_array = array();
+//        $keys = array_keys($sorted_array);
+//        shuffle($keys);
+//
+//        foreach ($keys as $key)
+//        {
+//            $shuffled_array[$key] = $sorted_array[$key];
+//        }
+//
+//        return $shuffled_array;
+//    }
+
+//    public function checkAndGetDiscount($discountAmounts,$isDailies,$expDates,$dailyCounts)
+//    {
+//        $discountsAfterCheck=[];
+//       foreach ($isDailies as $storeId => $isDaily){
+//          if ($isDaily){
+//              if ($this->checkDailyDiscountNotExpired($expDates[$storeId],$dailyCounts[$storeId])){
+//                  $discountsAfterCheck[$storeId]=$discountAmounts[$storeId];
+//              }else{
+//                  $discountsAfterCheck[$storeId]=0;
+//              }
+//          }else{
+//              $discountsAfterCheck[$storeId]=$discountAmounts[$storeId];
+//          }
+//       }
+//       return $discountsAfterCheck;
+//    }
+//
+//    public function checkDailyDiscountNotExpired($expDate,$dailyCount)
+//    {
+//        $helper=new Libraries\Helper();
+//
+//        $currentDate=$helper->getCurrentDate();
+//        if ($expDate<$currentDate || $dailyCount==0){
+//            return false;
+//        }else{
+//            return true;
+//        }
+//    }
+//
+//    public function getPriceAfterDiscount($prices,$discounts)
+//    {
+//        $discountedPrice=[];
+//        foreach ($prices as $storeId => $price){
+//            $discountedPrice[$storeId]=$price-$discounts[$storeId];
+//        }
+//        return $discountedPrice;
+//    }
+//
+//    public function getStoreIdWithMinimumPrices($array)
+//    {
+//         $min = min($array);
+//         return array_search($min, $array);
+//    }
+
+//    public function orderBy($array, $sortOrder)
+//    {
+//        usort($array, function ($a, $b) use ($sortOrder) {
+//            $result = '';
+//
+//            $sortOrderArray = explode(',', $sortOrder);
+//            foreach ($sortOrderArray AS $item) {
+//                $itemArray = explode(' ', trim($item));
+//                $field = $itemArray[0];
+//                $sort = !empty($itemArray[1]) ? $itemArray[1] : '';
+//
+//                $mix = [$a, $b];
+//                if (!isset($mix[0][$field]) || !isset($mix[1][$field])) {
+//                    continue;
+//                }
+//
+//                if (strtolower($sort) === 'desc') {
+//                    $mix = array_reverse($mix);
+//                }
+//
+//                if (is_numeric($mix[0][$field]) && is_numeric($mix[1][$field])) {
+//                    $result .= ceil($mix[0][$field] - $mix[1][$field]);
+//                } else {
+//                    $result .= strcasecmp($mix[0][$field], $mix[1][$field]);
+//                }
+//            }
+//
+//        });
+//
+//        return $array;
 //    }
 
 }
