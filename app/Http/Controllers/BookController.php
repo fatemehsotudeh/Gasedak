@@ -41,9 +41,10 @@ class BookController extends Controller
             $storesId=$storeBook->getStoresIdWithThisBook();
             $storesLatAndLng=$storeBook->getStoresLatAndLng($storesId);
             $distancesAndIds=$storeBook->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
-            $stores=$storeBook->getSpecificStoreDataBasedNearest($distancesAndIds);
+            $stores=$storeBook->getSpecificStoreDataBasedNearest($distancesAndIds,$bookId);
+            $storesCheckDiscountAndNotSuspended=$storeBook->checkDiscountsAndSuspended($stores);
             $data['image']=$storeBook->getBookImage();
-            $data['stores']=$storeBook->paginateData($request,$stores);
+            $data['stores']=$storeBook->paginateData($request,$storesCheckDiscountAndNotSuspended);
             $data['comments']=$storeBook->getBookComments($request);
 
             return response()->json(['data'=>$data,'message'=>'return book data successfully'],200);

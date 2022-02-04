@@ -43,31 +43,36 @@ class DiscountController extends Controller
         $discount->orderId=$cartId;
         $discount->userId=$identifiedUser->id;
 
+        try {
+            if ($discount->checkExistenceCode()){
+                //first check if the code is expired or not
+                if (!$discount->checkCodeExpiration()){
+                    $discount->checkCodeUserType();
+                    $order=new Order();
+                    $order->id=$cartId;
+                    $result=$order->checkAndGetRelatedResponse($cartHelper,'discount','',$discount);
 
-        if ($discount->checkExistenceCode()){
-            //first check if the code is expired or not
-            if (!$discount->checkCodeExpiration()){
-                $discount->checkCodeUserType();
-                $order=new Order();
-                $order->id=$cartId;
-                $result=$order->checkAndGetRelatedResponse($cartHelper,'discount','',$discount);
-
-                if (array_key_exists('status',$result->getOriginalContent())){
-                    return $result;
-                }else{
-                    if ($message=$discount->message){
-                        return response()->json(['status'=>'error','message'=>$message],403);
-                    }else{
-                        //save code id in order table
-                        $order->saveDiscountCodeId($discount->discountRow['id']);
+                    if (array_key_exists('status',$result->getOriginalContent())){
                         return $result;
+                    }else{
+                        if ($message=$discount->message){
+                            $order->saveDiscountCodeId(null);
+                            return response()->json(['status'=>'error','message'=>$message],403);
+                        }else{
+                            //save code id in order table
+                            $order->saveDiscountCodeId($discount->discountRow['id']);
+                            return $result;
+                        }
                     }
+                }else{
+                    return response()->json(['status'=>'error','message'=>'the code entered is expired'],403);
                 }
             }else{
-                return response()->json(['status'=>'error','message'=>'the code entered is expired'],403);
+                return response()->json(['status'=>'error','message'=>'the code entered is incorrect'],401);
             }
-        }else{
-            return response()->json(['status'=>'error','message'=>'the code entered is incorrect'],401);
+        }catch(\Exception $e){
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+
     }
 }

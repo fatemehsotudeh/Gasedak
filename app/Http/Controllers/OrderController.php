@@ -123,7 +123,8 @@ class OrderController extends Controller
         $order->userId=$identifiedUser->id;
 
         try {
-            return $order->getOrdersInFourCategory();
+              $data=$order->getOrdersInFourCategory();
+              return response()->json(['data'=>$data,'message'=>'return orders successfully'],200);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
@@ -145,8 +146,13 @@ class OrderController extends Controller
         $order=new Order();
         $order->id=$orderId;
 
+        if (!$order->checkOrderExists()){
+            return response()->json(['status' => 'error', 'message' => 'no order with this id found'],404);
+        }
+
         try {
-            return $order->getOrderItem();
+             $data=$order->getOrderItem();
+            return response()->json(['data'=>$data,'message'=>'return order items successfully'],200);
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);
         }
@@ -168,11 +174,15 @@ class OrderController extends Controller
         $order=new Order();
         $order->id=$orderId;
 
+        if (!$order->checkOrderExists()){
+            return response()->json(['status' => 'error', 'message' => 'no order with this id found'],404);
+        }
+
         try {
             if ($order->canCanceledOrder()) {
                 return response()->json(['message'=> 'canceled order successfully'],200);
             }else{
-                 return response()->json(['message'=> 'this order can not be canceled'],400);
+                 return response()->json(['status'=>'error','message'=> 'this order can not be canceled'],400);
             }
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);

@@ -46,6 +46,15 @@ class StoreBook extends Model
         }
     }
 
+    public function checkStoreNotSuspendedV2()
+    {
+        if (Store::where('id',$this->storeId)->pluck('isSuspended')[0]!=1){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public function checkStoreHasBooks()
     {
         if (StoreBook::where('storeId',$this->storeId)->exists()){
@@ -68,6 +77,11 @@ class StoreBook extends Model
     }
 
     public function getAllBooks()
+    {
+        return Book::all();
+    }
+
+    public static function getBooks()
     {
         return Book::all();
     }
@@ -134,14 +148,13 @@ class StoreBook extends Model
         return $distances;
     }
 
-    public function getSpecificStoreDataBasedNearest($distances)
+    public function getSpecificStoreDataBasedNearest($distances,$bookId)
     {
         $stores=[];
         foreach ($distances as $storeId=>$distance){
-            $stores[]=Store::where('stores.id',$storeId)
-                ->join('storesaddress','storesaddress.storeId','stores.id')
-                ->join('storebooks','storebooks.storeId','stores.id')
-                ->select('storesaddress.*','storebooks.*','stores.*')
+            $stores[]=StoreBook::where([['storebooks.storeid',$storeId],['storebooks.bookId',$bookId]])
+                ->join('storesaddress','storesaddress.storeId','storebooks.storeId')
+                ->join('stores','stores.id','storesaddress.storeId')
                 ->first();
         }
         return $stores;
@@ -338,26 +351,6 @@ class StoreBook extends Model
                 ->get();
     }
 
-//    public function getOrderByResults($data,$orderBy)
-//    {
-//        switch ($orderBy){
-//            case 'جدید ترین':
-//                return $data->orderBy('created_at','DESC')->get();
-//                break;
-//            case 'پرفروش ترین':
-//                return $data->orderBy('purchaseCount','DESC')->get();
-//                break;
-//            case 'گران ترین':
-//                return $data->orderByRaw('(price - discountAmount) DESC')->get();
-//                break;
-//            case 'ارزان ترین':
-//                return $data->orderByRaw('(price - discountAmount)')->get();
-//                break;
-//            default:
-//                return $data->get();
-//        }
-//    }
-
     public function getOrderByResults($array,$orderBy)
     {
         $collectArray = collect($array);
@@ -478,7 +471,7 @@ class StoreBook extends Model
     {
         foreach ($books as $book){
             if ($book['isDailyDiscount']){
-                if ($this->checkDailyDiscountNotExpired($book['dailyCount'],$book['dailyDiscountExpDate'])){
+                if ($this->checkDailyDiscountNotExpired($book['dailyDiscountExpDate'],$book['dailyCount'])){
                     $discount=$book['discountAmount'];
                 }else{
                     $discount=0;
@@ -518,5 +511,46 @@ class StoreBook extends Model
 
          return array_values($orderedBook);
     }
+
+    public function checkDiscountsAndSuspended($stores)
+    {
+        foreach ($stores as $key=>$store){
+            if ($store['isSuspended']!=1){
+                if ($store['isDailyDiscount']){
+                    if ($this->checkDailyDiscountNotExpired($store['dailyDiscountExpDate'],$store['dailyCount'],)){
+                        $discount=$store['discountAmount'];
+                    }else{
+                        $discount=0;
+                    }
+                }else{
+                    $discount=$store['discountAmount'];
+                }
+                $store['discountAmount']=$discount;
+            }else{
+                unset($stores[$key]);
+            }
+        }
+        return $stores;
+    }
+
+    //    public function getOrderByResults($data,$orderBy)
+//    {
+//        switch ($orderBy){
+//            case 'جدید ترین':
+//                return $data->orderBy('created_at','DESC')->get();
+//                break;
+//            case 'پرفروش ترین':
+//                return $data->orderBy('purchaseCount','DESC')->get();
+//                break;
+//            case 'گران ترین':
+//                return $data->orderByRaw('(price - discountAmount) DESC')->get();
+//                break;
+//            case 'ارزان ترین':
+//                return $data->orderByRaw('(price - discountAmount)')->get();
+//                break;
+//            default:
+//                return $data->get();
+//        }
+//    }
 
 }

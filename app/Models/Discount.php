@@ -140,7 +140,7 @@ class Discount extends Model
         switch ($this->discountRef){
             case 'book':
                 $cart=$this->createCartModel($this->bookId);
-                return $cart->getCartItemQPD()['price'];
+                return $cart->getCartItemQPD()['price']*$cart->getCartItemQPD()['quantity'];
             case 'cart':
                 $cart=$this->createCartModel();
                 return $cart->getCartQPD()['totalPrice'];
@@ -156,28 +156,59 @@ class Discount extends Model
 
     public function checkAndGetDiscountAmount($price)
     {
-        if($this->checkPriceHighThanLowerBound($price)){
-            //update cart item and discount code used field set 1 and increase count
-            $disAmount=$this->discountRow['amount'];
-            $discountType=$this->discountRow['discountType'];
+        $discountType=$this->discountRow['discountType'];
+        $disAmount=$this->discountRow['amount'];
 
-            if ($discountType=='percentage'){
-                $dis= ($disAmount * $price )/100;
-            }else{
-                $dis=$disAmount;
-            }
-            $dis=$this->checkDisLowThanUpperBoundAndGetResult($dis);
-            if ($dis<$this->getTotalDiscountAmount()){
+        if ($discountType=='percentage'){
+            $dis= ($price * $disAmount )/100;
+            $disAfterCheck=$this->checkDisLowThanUpperBoundAndGetResult($dis);
+
+            if ($disAfterCheck<$this->getTotalDiscountAmount()){
                 $this->message='کاربر عزیر میزان تخفیف های قبلی از  کد تخفیف شما بیشتر است پیشنهاد ما به شما این است که در خرید های بعدی تان از این کد استفاده کنید';
                 $this->amount=0;
             }else{
-                $this->amount=$dis;
+                $this->amount=$disAfterCheck;
             }
         }else{
-           $this->message='حداقل قیمت برای اعمال این کد باید'.$this->discountRow['lowerBound'].'باشد';
-           $this->amount=0;
+            $dis = $disAmount;
+            if($this->checkPriceHighThanLowerBound($price)) {
+                $disAfterCheck = $disAmount;
+                if ($dis<$this->getTotalDiscountAmount()){
+                    $this->message='کاربر عزیر میزان تخفیف های قبلی از  کد تخفیف شما بیشتر است پیشنهاد ما به شما این است که در خرید های بعدی تان از این کد استفاده کنید';
+                    $this->amount=0;
+                }else{
+                    $this->amount=$disAfterCheck;
+                }
+            }else{
+                $this->message = 'حداقل قیمت برای اعمال این کد باید' . $this->discountRow['lowerBound'] . 'باشد';
+                $this->amount=0;
+            }
         }
+
     }
+
+//        if($this->checkPriceHighThanLowerBound($price)){
+//            //update cart item and discount code used field set 1 and increase count
+//            $disAmount=$this->discountRow['amount'];
+//            $discountType=$this->discountRow['discountType'];
+//
+//            if ($discountType=='percentage'){
+//                $dis= ($disAmount * $price )/100;
+//            }else{
+//                $dis=$disAmount;
+//            }
+//            $dis=$this->checkDisLowThanUpperBoundAndGetResult($dis);
+//            if ($dis<$this->getTotalDiscountAmount()){
+//                $this->message='کاربر عزیر میزان تخفیف های قبلی از  کد تخفیف شما بیشتر است پیشنهاد ما به شما این است که در خرید های بعدی تان از این کد استفاده کنید';
+//                $this->amount=0;
+//            }else{
+//                $this->amount=$dis;
+//            }
+//        }else{
+//           $this->message='حداقل قیمت برای اعمال این کد باید'.$this->discountRow['lowerBound'].'باشد';
+//           $this->amount=0;
+//        }
+
 
     public function checkPriceHighThanLowerBound($price)
     {
@@ -282,4 +313,5 @@ class Discount extends Model
     {
         return Cart::where('id',$this->orderId)->pluck('totalDiscountAmount')[0];
     }
+
 }

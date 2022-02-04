@@ -608,7 +608,7 @@ class CartHelper extends Model
                 break;
             case 'unavailable':
                 $message='ناموجود شد';
-                $orderMessage=" کتاب ".$goodName."ناموجود شد";
+                $orderMessage=" کتاب ".$goodName." ناموجود شد ";
                 break;
             case 'available':
                 $message='موجود شد';

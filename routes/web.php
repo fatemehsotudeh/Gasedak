@@ -29,6 +29,7 @@ $router->post('/resetPassword','AuthController@resetPassword');
 
 //routes need auth middleware
 $router->group(['middleware' => 'auth'], function () use ($router) {
+    $router->post('/checkUserDisabled','UserController@checkUserDisabled');
     $router->post('/registerInvatition','InvitationalCodeController@registerInvatition');
     $router->post('/getInvatitionCode','InvitationalCodeController@getInvatitionCode');
     $router->post('/updatePassword','UserController@updatePassword');

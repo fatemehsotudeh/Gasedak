@@ -13,6 +13,15 @@ class Order extends Model
     protected $table='orders';
     protected $fillable=['id','userId','totalPrice','totalDiscountAmount','codeDiscountAmount'];
 
+    public function checkOrderExists()
+    {
+        if (Order::where('id',$this->id)->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
     public function getOrdersInFourCategory()
     {
         $orders=$this->getAllUserOrders();
@@ -115,7 +124,8 @@ class Order extends Model
         Order::where('id',$this->id)
             ->update([
                 'shipperId'=>$this->getShipperId(),
-                'userAddressId'=>$this->addressId
+                'userAddressId'=>$this->addressId,
+                'discountCodeId'=>null
             ]);
     }
 
@@ -328,19 +338,22 @@ class Order extends Model
                 'discountAmount' => $cartItem['discountAmount'],
                 'quantity' => $cartItem['quantity']
             ]);
+
             $orderItem->save();
-            $this->increaseGoodsInventory($cartItem['bookId'],$cartItem['quantity']);
+            $storeId=$this->getCartStoreId();
+            $this->decreaseGoodsInventoryAndUpdateBookPurchaseCount($cartItem['bookId'],$cartItem['quantity'],$storeId);
             if (!$disTypeCode && $cartItem['isDaily']){
-                $this->decreaseGoodsDailyDiscountCount($cartItem['bookId'],$cartItem['quantity']);
+                $this->decreaseGoodsDailyDiscountCount($cartItem['bookId'],$cartItem['quantity'],$storeId);
             }
 
         }
-        $this->updateOrderQPD();
+        $this->updateOrderQPDAndUpdateStorePurchaseCount();
     }
 
-    public function updateOrderQPD()
+    public function updateOrderQPDAndUpdateStorePurchaseCount()
     {
         $cart=Cart::where('id',$this->id)->first();
+        $storeId=$this->getCartStoreId();
 
         Order::where('id',$this->id)
             ->update([
@@ -348,6 +361,19 @@ class Order extends Model
                 'totalQuantity' => $cart['totalQuantity'],
                 'totalDiscountAmount' => $cart['totalDiscountAmount']
             ]);
+
+        $this->updateStorePurchaseCount($storeId,$cart['totalQuantity']);
+    }
+
+    public function updateStorePurchaseCount($storeId,$quantity)
+    {
+        $store=Store::where('id',$storeId);
+        $oldPurchaseCount=$store->pluck('purchaseCount')[0];
+        $newPurchaseCount=$oldPurchaseCount+$quantity;
+        $store->update([
+            'purchaseCount' => $newPurchaseCount
+        ]);
+
     }
 
     public function updateOrderStatus($depositId=null)
@@ -409,22 +435,47 @@ class Order extends Model
         }
     }
 
-    public function increaseGoodsInventory($bookId,$quantity)
+    public function decreaseGoodsInventoryAndUpdateBookPurchaseCount($bookId,$quantity,$storeId)
+    {
+        $book=StoreBook::where([['bookId',$bookId],['storeId',$storeId]]);
+        $bookInventory=$book->pluck('inventory')[0];
+        $newInventory=$bookInventory-$quantity;
+        if ($newInventory<0){
+            $newInventory=0;
+        }
+        $book->update([
+            'inventory' => $newInventory
+        ]);
+
+        $this->updateBookPurchaseCount($bookId,$quantity);
+    }
+
+    public function updateBookPurchaseCount($bookId,$quantity)
     {
         $book=Book::where('id',$bookId);
-        $bookInventory=$book->pluck('inventory');
+        $oldPurchaseCount=$book->pluck('purchaseCount')[0];
+        $newPurchaseCount=$oldPurchaseCount+$quantity;
         $book->update([
-            'inventory' => $bookInventory-$quantity
+            'purchaseCount' => $newPurchaseCount
         ]);
     }
 
-    public function decreaseGoodsDailyDiscountCount($bookId,$quantity)
+    public function decreaseGoodsDailyDiscountCount($bookId,$quantity,$storeId)
     {
-        $book=Book::where('id',$bookId);
-        $bookDailyCount=$book->pluck('dailyCount');
+        $book=StoreBook::where([['bookId',$bookId],['storeId',$storeId]]);
+        $bookDailyCount=$book->pluck('dailyCount')[0];
+        $newDailyCount=$bookDailyCount-$quantity;
+        if ($newDailyCount<0){
+            $newDailyCount=0;
+        }
         $book->update([
-            'dailyCount' => $bookDailyCount-$quantity
+            'dailyCount' => $newDailyCount
         ]);
+    }
+
+    public function getCartStoreId()
+    {
+        return Cart::where('id',$this->id)->pluck('storeId')[0];
     }
 
 }

@@ -157,15 +157,21 @@ class AuthController extends Controller
      */
     protected function respondWithToken($token, Request $request)
     {
-        return response()->json([
-            'data'=>[
-                'phoneNumber'=>$request->phoneNumber,
-                'password'=>$request->password,
-            ],
-            'access_token' => $token,
-//            'token_type' => 'bearer',
-//            'expires_in' => auth()->factory()->getTTL() *60
-        ],200);
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($token);
+
+        $user=User::where('id',$identifiedUser->id);
+        if ($user->pluck('disabled')[0] == 1) {
+                return response()->json(['status' => 'error', 'message' => 'this user is disabled'], 400);
+        }else{
+            return response()->json([
+                'data'=>[
+                    'phoneNumber'=>$request->phoneNumber,
+                    'password'=>$request->password,
+                ],
+                'access_token' => $token,
+            ]);
+        }
     }
 
     public function resetPassword(Request $request)

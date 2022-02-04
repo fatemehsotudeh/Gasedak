@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\CartItem;
+use App\Models\Home;
 use App\Models\StoreAddress;
 use App\Models\StoreBook;
 use App\Models\UserAddress;
@@ -18,9 +19,8 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-        $store=new StoreBook();
-        return $store->getAllBooksWithIsDailyTrue();
-
+       return Home::getSpecialPublicationBooks();
+    }
 
 //        $array1=[
 //            [
@@ -40,7 +40,7 @@ class TestController extends Controller
 //        $array = collect($array1)->sortBy('discountAmount')->toArray();
 //        return array_values($array);
 
-    }
+
 //        $array = array( '1' => 3, '8' => 0 ,'3' =>0);
 //        $suffle=$this->shuffleAssociativeArray($array);
 //        $min = min($suffle);

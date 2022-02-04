@@ -117,4 +117,27 @@ class UserController extends Controller
             return response()->json(['massage'=>$e->getMessage()],500);
         }
     }
+
+    public function checkUserDisabled(Request $request)
+    {
+        //decode bearer token
+        $helper=new Libraries\Helper();
+        $identifiedUser=$helper->decodeBearerToken($request->bearerToken());
+
+        try {
+            $user=User::where('id',$identifiedUser->id);
+            if ($user->exists()){
+                if ($user->pluck('disabled')[0]==1){
+                    return response()->json(['status'=>'error','message'=>'this user is disabled'],400);
+                }else{
+                    return response()->json(['message'=>'user not disabled and can do anything'],200);
+                }
+            }else{
+                return response()->json(['status'=>'error','message'=>'this user not found'],404);
+            }
+        }catch (\Exception $e){
+            return response()->json(['massage'=>$e->getMessage()],500);
+        }
+
+    }
 }
