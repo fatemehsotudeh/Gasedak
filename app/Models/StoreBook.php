@@ -253,7 +253,7 @@ class StoreBook extends Model
         $words=explode(" ",$keyWord);
         $findBooks=[];
 
-        foreach ($books as $book){
+        foreach ($books as $key=>$book){
             $check=[];
             foreach ($words as $index => $word){
                 $check[0]=$this->searchInBookNameOrPublisherOrOriginality($book['name'],$word);
@@ -261,7 +261,13 @@ class StoreBook extends Model
                 $check[2]=$this->searchInBookNameOrPublisherOrOriginality($book['originality'],$word);
                 $check[3]=$this->searchInAuthorsOrTranslatores($book['authors'],$word);
                 $check[4]=$this->searchInAuthorsOrTranslatores($book['translators'],$word);
+                $check[5]=$this->searchInISBN($book['ISBN'],$word);
             }
+            if ($check[5]==true){
+                array_push($findBooks,$book);
+                break;
+            }
+
             if (in_array(true, $check)){
                 array_push($findBooks,$book);
             }
@@ -325,6 +331,15 @@ class StoreBook extends Model
         }
 
         if ($flag==1){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public function searchInISBN($ISBN,$word)
+    {
+        if (strpos($ISBN,$word)!==false){
             return true;
         }else{
             return false;
