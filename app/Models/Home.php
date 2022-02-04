@@ -23,16 +23,12 @@ class Home extends Model
 
         $userFavorite->userId=$userId;
         $userFavoriteData=$userFavorite->getUserFavoriteData();
+
         if ($userFavoriteData!=[]){
             $bookType=$userFavoriteData['bookType'];
             $userAgeRange=UserFavoriteData::findKeywordFromUserAgeRange($userFavoriteData['userAgeRange']);
             $favoriteCategory=$userFavoriteData['favoriteCategory'];
             $categoryId=Category::getCategoryId($favoriteCategory);
-
-            //save the query condition to prevent duplication
-            $typeCondition=['bookType',$bookType];
-            $ageCategoryCondition=['ageCategory',$userAgeRange];
-            $favoriteCategoryCondition=['categoryId',$categoryId];
 
             //suggest three categories of books
             //best: One is that the community is the user's all three favorites

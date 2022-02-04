@@ -17,6 +17,10 @@ class StoreBook extends Model
         'authors'=>'array'
     ];
 
+    protected $hidden = [
+        'password','email','username','IBAN'
+    ];
+
     public function checkExistenceBookInStore()
     {
         if (StoreBook::where('bookId',$this->bookId)->exists()){
@@ -177,9 +181,14 @@ class StoreBook extends Model
 
     public function paginateData($request,$data)
     {
-        $helper=new Libraries\Helper();
-        $collectionData=collect($data);
-        return $helper->paginate($request,$collectionData);
+        if ($data!=[]){
+            $helper=new Libraries\Helper();
+            $collectionData=collect($data);
+            return $helper->paginate($request,$collectionData);
+        }else{
+            return [];
+        }
+
     }
 
     public function getBookComments($request)
@@ -247,10 +256,11 @@ class StoreBook extends Model
         foreach ($books as $book){
             $check=[];
             foreach ($words as $index => $word){
-                $check[0]=$this->searchInBookNameOrPublisher($book['name'],$word);
-                $check[1]=$this->searchInBookNameOrPublisher($book['publisher'],$word);
-                $check[2]=$this->searchInAuthorsOrTranslatores($book['authors'],$word);
-                $check[3]=$this->searchInAuthorsOrTranslatores($book['translators'],$word);
+                $check[0]=$this->searchInBookNameOrPublisherOrOriginality($book['name'],$word);
+                $check[1]=$this->searchInBookNameOrPublisherOrOriginality($book['publisher'],$word);
+                $check[2]=$this->searchInBookNameOrPublisherOrOriginality($book['originality'],$word);
+                $check[3]=$this->searchInAuthorsOrTranslatores($book['authors'],$word);
+                $check[4]=$this->searchInAuthorsOrTranslatores($book['translators'],$word);
             }
             if (in_array(true, $check)){
                 array_push($findBooks,$book);
@@ -288,7 +298,7 @@ class StoreBook extends Model
         }
     }
 
-    public function searchInBookNameOrPublisher($name,$word)
+    public function searchInBookNameOrPublisherOrOriginality($name,$word)
     {
         if (strpos($name,$word)!==false){
             return true;
@@ -382,7 +392,7 @@ class StoreBook extends Model
     {
         $helper=new Libraries\Helper();
 
-        foreach ($books as $book) {
+        foreach ($books as $key=>$book) {
             $storebooks=new StoreBook();
             $storebooks->bookId=$book['id'];
 
@@ -390,26 +400,33 @@ class StoreBook extends Model
             $storesWithThisBook=$storebooks->getAllStoresWithThisBook();
 
             foreach ($storesWithThisBook as $storebook){
-                $price[$storebook['storeId']]=$storebook['price'];
-                $discountAmount[$storebook['storeId']]=$storebook['discountAmount'];
-                $percentDiscountAmount[$storebook['storeId']]=$storebook['percentDiscountAmount'];
-                $isDaily[$storebook['storeId']]=$storebook['isDailyDiscount'];
-                $dailyCount[$storebook['storeId']]=$storebook['dailyCount'];
-                $expDate[$storebook['storeId']]=$storebook['dailyDiscountExpDate'];
+                $this->storeId=$storebook['storeId'];
+                if($this->checkStoreNotSuspendedV2()){
+                    $price[$storebook['storeId']]=$storebook['price'];
+                    $discountAmount[$storebook['storeId']]=$storebook['discountAmount'];
+                    $percentDiscountAmount[$storebook['storeId']]=$storebook['percentDiscountAmount'];
+                    $isDaily[$storebook['storeId']]=$storebook['isDailyDiscount'];
+                    $dailyCount[$storebook['storeId']]=$storebook['dailyCount'];
+                    $expDate[$storebook['storeId']]=$storebook['dailyDiscountExpDate'];
+                }
             }
 
-            $discountsAfterCheck=$this->checkAndGetDiscount($discountAmount,$isDaily,$expDate,$dailyCount);
-            $percentDiscount=$this->checkAndGetDiscount($percentDiscountAmount,$isDaily,$expDate,$dailyCount);
-            $priceAfterDiscount=$this->getPriceAfterDiscount($price,$discountsAfterCheck);
-            $shufflePriceAfterDiscount=$helper->shuffleAssociativeArray($priceAfterDiscount);
-            $storeId=$this->getStoreIdWithMinimumPrices($shufflePriceAfterDiscount);
-            $book['storeId']=$storeId;
-            $book['price']=$price[$storeId];
-            $book['discountAmount']=$discountsAfterCheck[$storeId];
-            $book['percentDiscountAmount']=$percentDiscount[$storeId];
-            $book['isDaily']=$isDaily[$storeId];
-            $this->bookId=$book['id'];
-            $book['image']=$this->getBookImage();
+            if (sizeof($price)>0){
+                $discountsAfterCheck=$this->checkAndGetDiscount($discountAmount,$isDaily,$expDate,$dailyCount);
+                $percentDiscount=$this->checkAndGetDiscount($percentDiscountAmount,$isDaily,$expDate,$dailyCount);
+                $priceAfterDiscount=$this->getPriceAfterDiscount($price,$discountsAfterCheck);
+                $shufflePriceAfterDiscount=$helper->shuffleAssociativeArray($priceAfterDiscount);
+                $storeId=$this->getStoreIdWithMinimumPrices($shufflePriceAfterDiscount);
+                $book['storeId']=$storeId;
+                $book['price']=$price[$storeId];
+                $book['discountAmount']=$discountsAfterCheck[$storeId];
+                $book['percentDiscountAmount']=$percentDiscount[$storeId];
+                $book['isDaily']=$isDaily[$storeId];
+                $this->bookId=$book['id'];
+                $book['image']=$this->getBookImage();
+            }else{
+                unset($books[$key]);
+            }
         }
 
         return $books;

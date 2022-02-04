@@ -170,6 +170,11 @@ class Discount extends Model
                 $this->amount=$disAfterCheck;
             }
         }else{
+            if ($this->discountRef=='delivery'){
+                $cart=$this->createCartModel();
+                $price=$cart->getCartQPD()['totalPrice'];
+            }
+
             $dis = $disAmount;
             if($this->checkPriceHighThanLowerBound($price)) {
                 $disAfterCheck = $disAmount;
@@ -184,7 +189,6 @@ class Discount extends Model
                 $this->amount=0;
             }
         }
-
     }
 
 //        if($this->checkPriceHighThanLowerBound($price)){

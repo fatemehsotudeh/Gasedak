@@ -21,16 +21,20 @@ class CommentController extends Controller
         $bookId=$request->bookId;
 
         if (empty($bookId)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill the bookId field']);
+            return response()->json(['status' => 'error', 'message' => 'you must fill the bookId field']);
         }
 
         if (empty($rate) && empty($message)){
-            return response()->json(['status' => 'error', 'message' => 'You must fill one of the two rate or message fields'],400);
+            return response()->json(['status' => 'error', 'message' => 'you must fill one of the two rate or message fields'],400);
         }
 
         try {
             if (empty($rate)){
                 $rate=null;
+            }else{
+                if ($rate<0 || $rate>5){
+                    return response()->json(['status' => 'error', 'message' => 'rate must be between zero and five'],400);
+                }
             }
 
             //this type of setting prevents duplicate records from being added to the table
@@ -43,11 +47,10 @@ class CommentController extends Controller
 
             if (empty($comment->id)){
                 $comment->save();
-
             }else{
-                return response()->json(['status' => 'error', 'message' => 'this comment has already been registered with this information'],422);
+                return response()->json(['status' => 'error', 'message' => 'this comment has already been registered with this information'],409);
             }
-            return response()->json(['message' => 'Comment successfully added ,will be displayed after admin approval'],200);
+            return response()->json(['message' => 'comment successfully added ,will be displayed after admin approval'],200);
 
         }catch (\Exception $e){
             return response()->json(['status'=>'error','message'=>$e->getMessage()],500);

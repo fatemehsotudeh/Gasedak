@@ -56,8 +56,10 @@ class StoreController extends Controller
         try{
             if ($storebook->checkStoreNotSuspendedV2()){
                 if ($storebook->checkStoreHasBooks()){
-                    $data=$storebook->getStoreAllBooksPaginated();
-                    return response()->json(['data'=> $data,'message'=>'return store books successfully'],200);
+                    $books=$storebook->getStoreAllBooks();
+                    $booksFoundWithImageAndUpdatedDiscounts=$storebook->checkBookDiscountsAndAddImage($books);
+                    $bookPaginated=$storebook->paginateData($request,$booksFoundWithImageAndUpdatedDiscounts);
+                    return response()->json(['data'=> $bookPaginated,'message'=>'return store books successfully'],200);
                 }else{
                     return response()->json(['status' => 'error', 'message' => 'no books found for this store'],404);
                 }

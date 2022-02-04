@@ -81,7 +81,6 @@ class SearchController extends Controller
             $storeBooks=new StoreBook();
             $storeBooks->storeId=$storeId;
             if ($storeBooks->checkStoreHasBooks()){
-                if ($storeBooks->checkStoreOpen()){
                     if ($storeBooks->checkStoreNotSuspended()){
                         $allThisStoreBooks=$storeBooks->getStoreAllBooks();
                         $booksFoundWithKeyword=$storeBooks->advanceSearchInBooks($allThisStoreBooks,$keyWord);
@@ -95,9 +94,6 @@ class SearchController extends Controller
                     }else{
                         return response()->json(['status' => 'error', 'message' => 'this store is suspended'],400);
                     }
-                }else{
-                    return response()->json(['status' => 'error', 'message' => 'this store is closed'],400);
-                }
             }else{
                 return response()->json(['status' => 'error', 'message' => 'bookstore not found with this id'],404);
             }
