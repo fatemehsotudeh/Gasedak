@@ -658,4 +658,47 @@ class CartHelper extends Model
         return Cart::where('id',$this->cartId)->pluck('totalQuantity')[0];
     }
 
+    public function isBookInCart()
+    {
+        $flag=0;
+        $cartIds=$this->getUserCartIds();
+        if ($cartIds!=[]){
+            foreach ($cartIds as $cartId){
+                $this->cartId=$cartId;
+                if ($this->isbookInCartItem()){
+                    $flag=1;
+                    break;
+                }
+            }
+            if ($flag==1){
+                return 1;
+            }else{
+                return 0;
+            }
+        }else{
+            return 0;
+        }
+    }
+
+    public function getUserCartIds()
+    {
+        $cart=Cart::where('userId',$this->userId);
+
+        if ($cart->exists()){
+            return $cart->pluck('id');
+        }else{
+            return [];
+        }
+    }
+
+    public function isbookInCartItem()
+    {
+        $cartItem=CartItem::where([['cartId',$this->cartId],['bookId',$this->bookId]]);
+        if ($cartItem->exists()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
 }

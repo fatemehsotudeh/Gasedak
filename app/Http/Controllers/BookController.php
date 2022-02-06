@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CartHelper;
 use App\Models\StoreBook;
 use App\Models\UserFavoriteGood;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +43,10 @@ class BookController extends Controller
             $userFavGood->userId=$identifiedUser->id;
             $userFavGood->bookId=$bookId;
             $data['isBookInFavList']=$userFavGood->isbookInFavList();
+            $cart=new CartHelper();
+            $cart->userId=$identifiedUser->id;
+            $cart->bookId=$bookId;
+            $data['isBookInCart']=$cart->isBookInCart();
             return response()->json(['data'=>$data,'message'=>'return book data successfully'],200);
 
         }catch (\Exception $e){
