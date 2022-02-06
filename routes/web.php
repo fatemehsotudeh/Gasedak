@@ -58,6 +58,8 @@ $router->group(['middleware' => 'auth'], function () use ($router) {
     $router->post('/getUserNotifications','UserNotificationController@getUserNotifications');
     $router->post('/getStoreData','StoreController@getStoreData');
     $router->post('/getBookData','BookController@getBookData');
+    $router->post('/getStoresWithThisBook','BookController@getStoresWithThisBook');
+    $router->post('/getBookComments','BookController@getBookComments');
     $router->post('/getStoreBooks','StoreController@getStoreBooks');
     $router->post('/addToFavList','UserFavoriteGoodController@addToFavList');
     $router->post('/deleteFromFavList','UserFavoriteGoodController@deleteFromFavList');

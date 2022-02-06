@@ -19,10 +19,10 @@ class Home extends Model
     public static function getUserExclusiveOffer($userId)
     {
         $helper=new Libraries\Helper();
-        $userFavorite=new UserFavoriteData();
+        // $userFavorite=new UserFavoriteData();
+        // $userFavorite->userId=$userId;
+        $userFavoriteData=UserFavoriteData::getUserFavoriteData($userId);
 
-        $userFavorite->userId=$userId;
-        $userFavoriteData=$userFavorite->getUserFavoriteData();
 
         if ($userFavoriteData!=[]){
             $bookType=$userFavoriteData['bookType'];
@@ -96,7 +96,7 @@ class Home extends Model
             return $favoriteOffers;
 
         }else{
-            return [];
+            return collect();
         }
 
     }
@@ -105,6 +105,7 @@ class Home extends Model
     {
         $storeBook=new StoreBook();
         $offers=Home::getUserExclusiveOffer($userId);
+
 
         $books=$offers->take(10)->toArray();
 
@@ -154,7 +155,7 @@ class Home extends Model
     {
         $helper=new Libraries\Helper();
         $storeBook=new StoreBook();
-        return $helper->paginate($request,$storeBook->getAllBooksWithIsDailyTrueAndNotExpired());
+        return $storeBook->getAllBooksWithIsDailyTrueAndNotExpired();
     }
 
     public static function getNewestBooks()
@@ -170,7 +171,7 @@ class Home extends Model
 
     public static function getBestSellingBooks()
     {
-         $books=Book::orderBy('purchaseCount','DESC')
+        $books=Book::orderBy('purchaseCount','DESC')
             ->take(10)->get();
 
         $storeBook=new StoreBook();

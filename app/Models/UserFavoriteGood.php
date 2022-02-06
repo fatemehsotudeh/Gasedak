@@ -16,4 +16,18 @@ class UserFavoriteGood extends Model
         'translators'=> 'array',
         'authors'=>'array'
     ];
+
+    public function isbookInFavList()
+    {
+        $FavBook=UserFavoriteGood::where([
+            ['userId',$this->userId],
+            ['bookId',$this->bookId]
+        ]);
+
+        if ($FavBook->exists()){
+            return 1;
+        }else{
+            return 0;
+        }
+    }
 }

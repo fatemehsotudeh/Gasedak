@@ -9,14 +9,24 @@ class UserFavoriteData extends Model
     //
     protected $table='usersfavoritedata';
     protected $fillable = [
-        'studyAmount','bookType','importantThing','howToBuy'
+        'userId','studyAmount','bookType','importantThing','howToBuy'
     ];
 
-    public function getUserFavoriteData()
+    public function getUserFavoriteDataV2()
     {
         $userFavoriteData=UserFavoriteData::where('userId',$this->userId);
         if ($userFavoriteData->exists()){
             return $userFavoriteData->first();
+        }else{
+            return [];
+        }
+    }
+
+    public static function getUserFavoriteData($userId)
+    {
+        $userFavorite=UserFavoriteData::where('userId',$userId);
+        if ($userFavorite->exists()){
+            return $userFavorite->first();
         }else{
             return [];
         }

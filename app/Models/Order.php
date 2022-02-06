@@ -325,21 +325,34 @@ class Order extends Model
         }
     }
 
-    public function addOrderItems()
+    public function addOrderItems($disType,$disAmount)
     {
         $cartItems=CartItem::where([['cartId',$this->id],['isAvailable',1]])->get();
-        $disTypeCode=$this->checkDisTypeCode();
+        $disTypeCode=$this->checkDisTypeCode($disType);
 
         foreach ($cartItems as $cartItem){
-            $orderItem = OrderItem::firstOrNew([
-                'orderId' => $this->id,
-                'bookId' => $cartItem['bookId'],
-                'price' => $cartItem['price'],
-                'discountAmount' => $cartItem['discountAmount'],
-                'quantity' => $cartItem['quantity']
-            ]);
+            if ($disTypeCode){
+                $orderItem = OrderItem::firstOrNew([
+                    'orderId' => $this->id,
+                    'bookId' => $cartItem['bookId'],
+                    'price' => $cartItem['price'],
+                    'discountAmount' => 0,
+                    'quantity' => $cartItem['quantity']
+                ]);
 
-            $orderItem->save();
+                $orderItem->save();
+            }else{
+                $orderItem = OrderItem::firstOrNew([
+                    'orderId' => $this->id,
+                    'bookId' => $cartItem['bookId'],
+                    'price' => $cartItem['price'],
+                    'discountAmount' => $cartItem['discountAmount'],
+                    'quantity' => $cartItem['quantity']
+                ]);
+
+                $orderItem->save();
+            }
+
             $storeId=$this->getCartStoreId();
             $this->decreaseGoodsInventoryAndUpdateBookPurchaseCount($cartItem['bookId'],$cartItem['quantity'],$storeId);
             if (!$disTypeCode && $cartItem['isDaily']){
@@ -347,20 +360,31 @@ class Order extends Model
             }
 
         }
-        $this->updateOrderQPDAndUpdateStorePurchaseCount();
+        $this->updateOrderQPDAndUpdateStorePurchaseCount($disType,$disAmount);
     }
 
-    public function updateOrderQPDAndUpdateStorePurchaseCount()
+    public function updateOrderQPDAndUpdateStorePurchaseCount($disType,$disAmount)
     {
         $cart=Cart::where('id',$this->id)->first();
         $storeId=$this->getCartStoreId();
+        $disTypeCode=$this->checkDisTypeCode($disType);
 
-        Order::where('id',$this->id)
-            ->update([
-                'totalPrice' => $cart['totalPrice'],
-                'totalQuantity' => $cart['totalQuantity'],
-                'totalDiscountAmount' => $cart['totalDiscountAmount']
-            ]);
+        if ($disTypeCode){
+            Order::where('id',$this->id)
+                ->update([
+                    'totalPrice' => $cart['totalPrice'],
+                    'totalQuantity' => $cart['totalQuantity'],
+                    'totalDiscountAmount' => $disAmount
+                ]);
+        }else{
+            Order::where('id',$this->id)
+                ->update([
+                    'totalPrice' => $cart['totalPrice'],
+                    'totalQuantity' => $cart['totalQuantity'],
+                    'totalDiscountAmount' => $cart['totalDiscountAmount']
+                ]);
+        }
+
 
         $this->updateStorePurchaseCount($storeId,$cart['totalQuantity']);
     }
@@ -415,9 +439,12 @@ class Order extends Model
 
     public function deleteCartAndUpdateOrder()
     {
+        $disType=$this->discountType;
+        $disAmount=$this->codeDiscountAmount;
+
         $order=new Order();
         $order->id=$this->id;
-        $order->addOrderItems();
+        $order->addOrderItems($disType,$disAmount);
 
         $cartHelper=new CartHelper();
         $cartHelper->cartId=$this->id;
@@ -425,10 +452,9 @@ class Order extends Model
         $cartHelper->deleteCart();
     }
 
-    public function checkDisTypeCode()
+    public function checkDisTypeCode($disType)
     {
-        $disType=$this->discountType;
-        if ($disType=='code'){
+        if ($disType=="Code"){
             return true;
         }else{
             return false;
