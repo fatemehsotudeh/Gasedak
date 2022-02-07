@@ -13,6 +13,7 @@ class StoreController extends Controller
     //
     public function getStoreData(Request $request)
     {
+        $storeBook=new StoreBook();
         $storeId=$request->storeId;
 
         //Check that the storeId field is not empty
@@ -30,9 +31,10 @@ class StoreController extends Controller
                 $viewCount++;
                 $store->update(['viewCount'=>$viewCount]);
 
-                $storeData=$store->join('storesaddress','storesaddress.storeId','=','stores.id');
+                $storeData=$store->join('storesaddress','storesaddress.storeId','=','stores.id')->first();
+                $storeData['hashtags']=$storeBook->getStoreHashtagsAndConvertToArray($storeData);
 
-                return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData->first()],200);
+                return response()->json(['message'=>'return bookstore data successfully','data'=>$storeData],200);
             }else{
                 return response()->json(['status'=>'error','message'=>'no store found with this id'],404);
             }

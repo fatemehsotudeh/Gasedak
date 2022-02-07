@@ -104,7 +104,32 @@ class StoreBook extends Model
 
     public function getBookData()
     {
-        return Book::where('id',$this->bookId)->first()->toArray();
+        $this->bookData=Book::where('id',$this->bookId)->first()->toArray();
+        return $this->bookData;
+    }
+
+    public function getBookHashtagsAndConvertToArray()
+    {
+        $hashtags=explode('#',$this->bookData['hashtags']);
+        $hashtagsAfterConvert=[];
+        foreach ($hashtags as $key=>$hashtag){
+            if ($hashtag!=""){
+                array_push($hashtagsAfterConvert,'#'.$hashtag);
+            }
+        }
+        return $hashtagsAfterConvert;
+    }
+
+    public function getStoreHashtagsAndConvertToArray($storeData)
+    {
+        $hashtags=explode('#',$storeData['hashtags']);
+        $hashtagsAfterConvert=[];
+        foreach ($hashtags as $key=>$hashtag){
+            if ($hashtag!=""){
+                array_push($hashtagsAfterConvert,'#'.$hashtag);
+            }
+        }
+        return $hashtagsAfterConvert;
     }
 
     public function getStoresIdWithThisBook()

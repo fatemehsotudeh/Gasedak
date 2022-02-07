@@ -39,6 +39,7 @@ class BookController extends Controller
             $storeBook->updateBookCountInfo();
             $data=$storeBook->getBookData();
             $data['image']=$storeBook->getBookImage();
+            $data['hashtags']=$storeBook->getBookHashtagsAndConvertToArray();
             $userFavGood=new UserFavoriteGood();
             $userFavGood->userId=$identifiedUser->id;
             $userFavGood->bookId=$bookId;
