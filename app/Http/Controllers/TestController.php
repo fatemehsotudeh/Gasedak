@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Home;
 use App\Models\StoreAddress;
 use App\Models\StoreBook;
+use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +20,8 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
-       return Home::getSpecialPublicationBooks();
-    }
 
+        //return DB::table('users')->where('id',31)->get();
 //        $array1=[
 //            [
 //                'price' => 130000,
@@ -76,7 +76,6 @@ class TestController extends Controller
 //        return $books;
 
 
-
 //        //$stores=StoreAddress::all();
 //        $listLat2=StoreAddress::all()->pluck('lat','id');
 //        $listLng2=StoreAddress::all()->pluck('lng','id');
@@ -119,7 +118,7 @@ class TestController extends Controller
 //        $book->ISBN=45794534;
 //        $book->translators=["الیف شافاک"];
 //        $book->authors=["ارسلان فصیحی"];
-    // $book->save();
+        // $book->save();
 //          return response()->json(Book::where('id',1)->pluck('translators')[0]);
 //        $list=UserAddress::where('postalAddress','LIKE','%پلاک2%')->get();
 //        return $list;
@@ -133,7 +132,7 @@ class TestController extends Controller
 //            'phoneNumber'='regex:/^[0-9]{11}$/i'
 //        ]);
 
-    //upload file test
+        //upload file test
 //        if ($request->has('image')){
 //            return $request->file('image')."\n";
 
@@ -149,6 +148,10 @@ class TestController extends Controller
 //                return pathinfo($request->file('image')->getClientOriginalName());
 //            }
 //        }
+
+
+//snap api
+
 //        $data = [
 //            "city"=>"tehran",
 //            "deliveryCategory"=> "bike-without-box",
@@ -202,26 +205,104 @@ class TestController extends Controller
 //            "id"=> null
 //        ];
 //
+
+
+        $data = [
+            "itemDetails" => [
+                [
+                    "pickedUpSequenceNumber" => 1,
+                    "dropOffSequenceNumber" => 2,
+                    "name" => "کره پاستوریزه ۵۰ گرمی پگاه",
+                    "quantity" => 3,
+                    "quantityMeasuringUnit" => "unit",
+                    "packageValue" => 5589,
+                    "createdAt" => "2019-02-26 18:08:03",
+                    "updatedAt" => "2019-02-26 18:08:03"
+                ],
+                [
+                    "pickedUpSequenceNumber" => 1,
+                    "dropOffSequenceNumber" => 2,
+                    "name" => "خامه صبحانه 125 میلی لیتری کاله",
+                    "quantity" => 2,
+                    "quantityMeasuringUnit" => "unit",
+                    "packageValue" => 4800,
+                    "createdAt" => "2019-02-26 18:08:03",
+                    "updatedAt" => "2019-02-26 18:08:03"
+                ]],
+            "orderDetails" => [
+                "packageSize" => 0.2,
+                "city" => "tehran",
+                "deliveryCategory" => "bike",
+                "deliveryFarePaymentType" => "cod",
+                "isReturn" => false,
+                "pricingId" => "8e941a24-f17c-47d3-bae5-299f3113a240",
+                "sequenceNumberDeliveryCollection" => 1,
+                "totalFare" => 105000,
+                "customerRefId" => 31,
+                "voucherCode" => null,
+                "waitingTime" => 0
+            ],
+            "pickUpDetails" => [
+                "id" => null,
+                "contactName" => "مارکت سعادت",
+                "address" => "جردن ",
+                "contactPhoneNumber" => "09376764602",
+                "plate" => "",
+                "sequenceNumber" => 1,
+                "unit" => "",
+                "comment" => "",
+                "latitude" => 35.784869,
+                "longitude" => 51.376754,
+                "type" => "pickup",
+                "collectCash" => "no",
+                "paymentType" => "prepaid",
+                "cashOnPickup" => 0,
+                "cashOnDelivery" => 0,
+                "isHub" => null,
+                "vendorId" => null
+            ],
+            "dropOffDetails" => [
+                "id" => null,
+                "contactName" => "نام تستی کانتکت",
+                "address" => "maghsad2 ",
+                "contactPhoneNumber" => "09108986973",
+                "plate" => "",
+                "sequenceNumber" => 2,
+                "unit" => "",
+                "comment" => "کامنت تستی",
+                "latitude" => 35.706674,
+                "longitude" => 51.364912,
+                "type" => "drop",
+                "collectCash" => "no",
+                "paymentType" => "prepaid",
+                "cashOnPickup" => 0,
+                "cashOnDelivery" => 0,
+                "isHub" => null,
+                "vendorId" => null
+            ],
+        ];
+
 //        $jsonData = json_encode($data);
-//        $ch = curl_init('https://customer.snapp-box.com/v1/customer/order/pricing');
-//        curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v1');
+//        $ch = curl_init('https://customer-stg.snapp-box.com/v1/customer/create_order');
+//        curl_setopt($ch, CURLOPT_USERAGENT, 'Snapp Rest Api v1');
 //        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
 //        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
 //        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 //        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
 //            'Content-Type: application/json',
-//           // 'Content-Length: ' . strlen($jsonData),
-//            'Authorization:eyJhbGciOiJIUzUxMiJ9.eyJjaWQiOjExODg1NzU4LCJjcmlkIjoiMjEwMjg5NzMiLCJlIjoiIiwid2UiOmZhbHNlLCJzdWIiOiIwOTM3MTg2MzA5NCIsImF1dGgiOiJST0xFX0NVU1RPTUVSIiwidHlwZSI6ImN1c3RvbWVyIn0.WCxYOdktD4ByM1VlCwq4xUEDIbNWr2uW6lPPWqQ-l3nldyDbF2r_WbnUT0yMMQnlNIBDO8RpUtZBiK3IV3QFaw'
+//            // 'Content-Length: ' . strlen($jsonData),
+//            'Authorization:eyJhbGciOiJIUzUxMiJ9.eyJjaWQiOjExODg1NzU4LCJjcmlkIjoiMjEwMjg5NzMiLCJlIjoic2luYWJhcmF6YW5kZWgwMUBnbWFpbC5jb20iLCJ3ZSI6dHJ1ZSwic3ViIjoiMDkzNzE4NjMwOTQiLCJhdXRoIjoiUk9MRV9DVVNUT01FUiIsInR5cGUiOiJjdXN0b21lciJ9.FjKT5p2POrit_dSVJ8j-TJt0XgIPdsRsZ6CahDIDvjL6f1uyI4x4VuxMnd8hDErxYpq21wGR3NUGs7IFAHE_dw'
 //        ));
-//
+////
 //        $result = curl_exec($ch);
 //        $err = curl_error($ch);
 //        $result = json_decode($result, true, JSON_PRETTY_PRINT);
 //        curl_close($ch);
 //
+//
 //        return $result;
 
-
+    }
 //    public function searchInBookName($name,$word)
 //    {
 //        if (strpos($name,$word)!==false){

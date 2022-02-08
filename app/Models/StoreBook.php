@@ -134,7 +134,7 @@ class StoreBook extends Model
 
     public function getStoresIdWithThisBook()
     {
-        return StoreBook::where('bookId',$this->bookId)->pluck('storeId');
+        return StoreBook::where([['bookId',$this->bookId],['inventory','!=',0]])->pluck('storeId');
     }
 
     public function getStoresLatAndLng($storeIds=null,$keyWord=null)

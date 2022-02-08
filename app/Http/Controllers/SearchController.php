@@ -190,18 +190,31 @@ class SearchController extends Controller
             $storeBook=new StoreBook();
             $book=Book::where('hashtags','like','%'.$hashtag.'%')->get();
             $booksWithPriceAndImage=$storeBook->addMinimumPriceAndDiscountToBooksFromStores($book);
-            $store=Store::where('hashtags','like','%'.$hashtag.'%');
-            $data=[];
-            if ($booksWithPriceAndImage!=[]){
-                $books=$storeBook->paginateData($request,$booksWithPriceAndImage);
-                $data['books']=$books;
+            $stores=Store::where([['hashtags','like','%'.$hashtag.'%'],['isSuspended','!=',1]]);
+
+            if (sizeof($booksWithPriceAndImage)!=0){
+                $books=$booksWithPriceAndImage->values()->toArray();
+                foreach ($books as $key=>$book){
+                    $books[$key]['type']='book';
+                }
+            }else{
+                $books=[];
             }
-            if ($store->exists()){
-                $stores=$store->paginate(10);
-                $data['stores']=$stores;
+
+            if ($stores->exists()){
+                $stores=$stores->get()->toArray();
+                foreach ($stores as $key=>$store){
+                    $stores[$key]['type']='store';
+                }
+            }else{
+                $stores=[];
             }
+
+            $data=array_merge($books,$stores);
+
             if (sizeof($data)>0){
-                return response()->json(['data' => $data, 'message' => 'books or stores that had this hashtag were successfully returned'], 200);
+                $paginateData=$storeBook->paginateData($request,$data);
+                return response()->json(['data' => $paginateData, 'message' => 'books or stores that had this hashtag were successfully returned'], 200);
             }else{
                 return response()->json(['status' => 'error', 'message' => 'no books or stores with this hashtag were found'], 404);
             }

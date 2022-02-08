@@ -76,11 +76,16 @@ class BookController extends Controller
 
         try {
             $storesId=$storeBook->getStoresIdWithThisBook();
-            $storesLatAndLng=$storeBook->getStoresLatAndLng($storesId);
-            $distancesAndIds=$storeBook->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
-            $stores=$storeBook->getSpecificStoreDataBasedNearest($distancesAndIds,$bookId);
-            $storesCheckDiscountAndNotSuspended=$storeBook->checkDiscountsAndSuspended($stores);
-            $data=$storeBook->paginateData($request,$storesCheckDiscountAndNotSuspended);
+
+            if ($storesId!=[]){
+                $storesLatAndLng=$storeBook->getStoresLatAndLng($storesId);
+                $distancesAndIds=$storeBook->getUserDistanceToBookStores($userLat,$userLng,$storesLatAndLng);
+                $stores=$storeBook->getSpecificStoreDataBasedNearest($distancesAndIds,$bookId);
+                $storesCheckDiscountAndNotSuspended=$storeBook->checkDiscountsAndSuspended($stores);
+                $data=$storeBook->paginateData($request,$storesCheckDiscountAndNotSuspended);
+            }else{
+                $data=[];
+            }
 
             return response()->json(['data'=>$data,'message'=>'return stores with this book successfully'],200);
 
