@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\CartItem;
 use App\Models\Home;
+use App\Models\Order;
+use App\Models\SMSToken;
 use App\Models\StoreAddress;
 use App\Models\StoreBook;
 use App\Models\User;
@@ -20,7 +22,14 @@ class TestController extends Controller
     //
     public function test(Request $request)
     {
+        $SMS=new SMSToken();
 
+        $order=new Order();
+        $order->id=19;
+        $SMS->message=$order->getSMSMessageToStore();
+        $SMS->phoneNumber="09302258594";
+        $SMS->sendSMS();
+        //return $order->getSMSMessageToStore();
         //return DB::table('users')->where('id',31)->get();
 //        $array1=[
 //            [

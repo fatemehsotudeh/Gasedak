@@ -126,6 +126,7 @@ class Payment extends Model
                         $order->id=$this->orderId;
                         $order->userId=$this->userId;
                         $order->updateOrderStatus($depositTransaction->id);
+                        $order->sendSMSToStoreForEachOrder('register');
                         $order->updateDiscountCodes();
                         $order->deleteCartAndUpdateOrder();
                         break;

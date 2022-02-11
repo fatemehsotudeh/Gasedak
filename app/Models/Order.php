@@ -7,11 +7,14 @@ use http\Env\Request;
 use Illuminate\Database\Eloquent\Model;
 use function Symfony\Component\VarDumper\Dumper\esc;
 
+use Morilog\Jalali\Jalalian;
+
+
 class Order extends Model
 {
     //
     protected $table='orders';
-    protected $fillable=['id','userId','totalPrice','totalDiscountAmount','codeDiscountAmount'];
+    protected $fillable=['id','userId','totalPrice','totalDiscountAmount','codeDiscountAmount','totalWeight'];
 
     public function checkOrderExists()
     {
@@ -35,7 +38,7 @@ class Order extends Model
 
     public function getAllUserOrders()
     {
-        return Order::where('orders.userId',$this->userId)->get();
+        return Order::where('userId',$this->userId)->get();
     }
 
     public function relatedCategoryOrderData($category,$orders=null)
@@ -55,7 +58,33 @@ class Order extends Model
                 }
             }
         }
+
+        $cartHelper=new CartHelper();
+
+        foreach ($relatedOrders as $key=>$relatedOrder){
+            $this->id=$relatedOrder['id'];
+            if ($category=='waitingForPayment'){
+                $cartHelper->cartId=$relatedOrder['id'];
+                $booksId=$cartHelper->getBookIdFromCartsItem();
+            }else{
+                $booksId=$this->getBookIdFromOrdersItem();
+            }
+
+            $goodsImage=[];
+            foreach ($booksId as $bookId){
+                $cartHelper->bookId=$bookId;
+                array_push($goodsImage,$cartHelper->getBookImage());
+            }
+            $relatedOrders[$key]['orderDate'] = jdate($relatedOrder['orderDate'])->format('Y-m-d');
+            $relatedOrders[$key]['goodsImage']=$goodsImage;
+        }
+
         return $relatedOrders;
+    }
+
+    public function getBookIdFromOrdersItem()
+    {
+        return OrderItem::where('orderId',$this->id)->pluck('bookId');
     }
 
     public function getOrderItem()
@@ -279,6 +308,7 @@ class Order extends Model
                 $responseMessage=$message;
                 $responseData=$data;
                 $this->updateOrderStatus();
+                $this->sendSMSToStoreForEachOrder('register');
                 $this->updateDiscountCodes();
                 $this->decreaseWalletBalance();
                 $this->deleteCartAndUpdateOrder();
@@ -330,6 +360,7 @@ class Order extends Model
         $cartItems=CartItem::where([['cartId',$this->id],['isAvailable',1]])->get();
         $disTypeCode=$this->checkDisTypeCode($disType);
 
+        $totalWeight=0;
         foreach ($cartItems as $cartItem){
             if ($disTypeCode){
                 $orderItem = OrderItem::firstOrNew([
@@ -341,6 +372,7 @@ class Order extends Model
                 ]);
 
                 $orderItem->save();
+
             }else{
                 $orderItem = OrderItem::firstOrNew([
                     'orderId' => $this->id,
@@ -351,6 +383,7 @@ class Order extends Model
                 ]);
 
                 $orderItem->save();
+
             }
 
             $storeId=$this->getCartStoreId();
@@ -359,27 +392,40 @@ class Order extends Model
                 $this->decreaseGoodsDailyDiscountCount($cartItem['bookId'],$cartItem['quantity'],$storeId);
             }
 
+            $totalWeight+=$this->getGoodWeight($cartItem['bookId']) * $cartItem['quantity'];
+
         }
-        $this->updateOrderQPDAndUpdateStorePurchaseCount($disType,$disAmount);
+        $this->totalWeight=$totalWeight;
+        $this->updateOrderQPDWAndUpdateStorePurchaseCount($disType,$disAmount);
     }
 
-    public function updateOrderQPDAndUpdateStorePurchaseCount($disType,$disAmount)
+    public function getGoodWeight($id)
+    {
+        return Book::where('id',$id)->pluck('weight')[0];
+    }
+
+    public function updateOrderQPDWAndUpdateStorePurchaseCount($disType,$disAmount)
     {
         $cart=Cart::where('id',$this->id)->first();
         $storeId=$this->getCartStoreId();
         $disTypeCode=$this->checkDisTypeCode($disType);
 
+        $setting=new Setting();
+        $postCost=$setting->getPostCost();
+
         if ($disTypeCode){
             Order::where('id',$this->id)
                 ->update([
-                    'totalPrice' => $cart['totalPrice'],
+                    'totalWeight' => $this->totalWeight,
+                    'totalPrice' => $cart['totalPrice'] + $postCost,
                     'totalQuantity' => $cart['totalQuantity'],
                     'totalDiscountAmount' => $disAmount
                 ]);
         }else{
             Order::where('id',$this->id)
                 ->update([
-                    'totalPrice' => $cart['totalPrice'],
+                    'totalWeight' => $this->totalWeight,
+                    'totalPrice' => $cart['totalPrice'] + $postCost,
                     'totalQuantity' => $cart['totalQuantity'],
                     'totalDiscountAmount' => $cart['totalDiscountAmount']
                 ]);
@@ -502,6 +548,84 @@ class Order extends Model
     public function getCartStoreId()
     {
         return Cart::where('id',$this->id)->pluck('storeId')[0];
+    }
+
+    public function getOrderStoreId()
+    {
+        return order::where('id',$this->id)->pluck('storeId')[0];
+    }
+
+    public function sendSMSToStoreForEachOrder($state)
+    {
+        $sms=new SMSToken();
+        $sms->phoneNumber=$this->getPhoneNumberFromStoreId($state);
+        $sms->message=$this->getSMSMessageToStore($state);
+        $sms->sendSMS();
+    }
+
+    public function getPhoneNumberFromStoreId($state)
+    {
+        switch ($state){
+            case 'register':
+                $storeId=$this->getCartStoreId();
+                break;
+            case 'cancel':
+                $storeId=$this->getOrderStoreId();
+                break;
+        }
+
+        return Store::where('id',$storeId)
+            ->pluck('mobileNumber')[0];
+    }
+
+    public function getSMSMessageToStore($state)
+    {
+        $trackingCode=$this->getOrderTrackingCode();
+
+        switch ($state){
+            case 'register':
+                $message = "همکار گرامی، یک سفارش با کد  ";
+                $message.= $trackingCode;
+                $message .= "در فروشگاه شمااز سوی قاصدک ثبت شده ";
+                $message .= "\n";
+                $message .= "لطفا در سریع ترین زمان به پنل خود به آدرس ";
+                $message .= "stores.ghasedakapp.ir";
+                $message .= "\n";
+                $message .= "مراجعه کنید";
+                break;
+            case 'cancel':
+                $message = " همکار گرامی، سفارش با کد ";
+                $message.= $trackingCode;
+                $message.="که پیش از این در فروشگاه شما از سوی قاصدک ثبت شده بود توسط کاربر کنسل شد  ";
+                break;
+        }
+
+        return $message;
+    }
+
+    public function getOrderTrackingCode()
+    {
+        return Order::where('id',$this->id)->pluck('trackingCode')[0];
+    }
+
+    public function getOrderTotalPrice()
+    {
+        $order=Order::where('id',$this->id)->first();
+        return $order['totalPrice']-$order['totalDiscountAmount'];
+    }
+
+    public function updateWalletBalancePerCancelOrder()
+    {
+        $wallet=new Wallet();
+        $wallet->userId=$this->userId;
+        $orderCost=$this->getOrderTotalPrice();
+        if ($wallet->checkWalletExists()){
+            $wallet->updateBalance($orderCost);
+        }else{
+            $wallet->balance=$orderCost;
+            $wallet->createAndUpdateWallet();
+        }
+
     }
 
 }

@@ -173,6 +173,7 @@ class OrderController extends Controller
 
         $order=new Order();
         $order->id=$orderId;
+        $order->userId=$identifiedUser->id;
 
         if (!$order->checkOrderExists()){
             return response()->json(['status' => 'error', 'message' => 'no order with this id found'],404);
@@ -180,6 +181,8 @@ class OrderController extends Controller
 
         try {
             if ($order->canCanceledOrder()) {
+                $order->sendSMSToStoreForEachOrder('cancel');
+                $order->updateWalletBalancePerCancelOrder();
                 return response()->json(['message'=> 'canceled order successfully'],200);
             }else{
                  return response()->json(['status'=>'error','message'=> 'this order can not be canceled'],400);
