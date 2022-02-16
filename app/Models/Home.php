@@ -18,6 +18,7 @@ class Home extends Model
 
     public static function getUserExclusiveOffer($userId)
     {
+
         $helper=new Libraries\Helper();
         // $userFavorite=new UserFavoriteData();
         // $userFavorite->userId=$userId;
@@ -46,18 +47,20 @@ class Home extends Model
             }
 
             $betterOffers1=Home::getBetterOffers($allBooks,$userAgeRange,$categoryId,'ageCategory','categoryId');
+
             if (sizeof($betterOffers1)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$betterOffers1))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
             $betterOffers2=Home::getBetterOffers($allBooks,$bookType,$categoryId,'bookType','categoryId');
+
             if (sizeof($betterOffers2)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$betterOffers2))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
@@ -65,7 +68,7 @@ class Home extends Model
             if (sizeof($betterOffers3)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$betterOffers3))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
@@ -73,7 +76,7 @@ class Home extends Model
             if (sizeof($goodOffers1)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$goodOffers1))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
@@ -81,7 +84,7 @@ class Home extends Model
             if (sizeof($goodOffers2)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$goodOffers2))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
@@ -89,11 +92,11 @@ class Home extends Model
             if (sizeof($goodOffers3)!=0){
                 $favoriteOffers=collect(array_merge($favoriteOffers->toArray(),$goodOffers3))->unique();
                 if (sizeof($favoriteOffers)>=10){
-                    return $favoriteOffers;
+                    return $favoriteOffers->unique('id')->values();
                 }
             }
 
-            return $favoriteOffers;
+            return $favoriteOffers->unique('id')->values();
 
         }else{
             return collect();
