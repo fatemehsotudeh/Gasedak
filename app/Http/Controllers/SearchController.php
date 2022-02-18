@@ -9,10 +9,12 @@ use App\Models\Store;
 use App\Models\StoreAddress;
 use App\Models\StoreBook;
 
+use Doctrine\DBAL\Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 use App\Libraries;
+use Namshi\JOSE\Signer\OpenSSL\ECDSA;
 
 
 class SearchController extends Controller
@@ -74,6 +76,7 @@ class SearchController extends Controller
             return response()->json(['status' => 'error', 'message' => 'You must fill the fields']);
         }
 
+
         //save keyWord in recent search table
         $this->saveKeyWord($keyWord,$identifiedUser->id);
 
@@ -81,7 +84,7 @@ class SearchController extends Controller
             $storeBooks=new StoreBook();
             $storeBooks->storeId=$storeId;
             if ($storeBooks->checkStoreHasBooks()){
-                    if ($storeBooks->checkStoreNotSuspended()){
+                    if ($storeBooks->checkStoreNotSuspendedV2()){
                         $allThisStoreBooks=$storeBooks->getStoreAllBooks();
                         $booksFoundWithKeyword=$storeBooks->advanceSearchInBooks($allThisStoreBooks,$keyWord);
                         $booksFoundWithImageAndUpdatedDiscounts=$storeBooks->checkBookDiscountsAndAddImage($booksFoundWithKeyword);

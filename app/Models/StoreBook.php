@@ -530,13 +530,17 @@ class StoreBook extends Model
             if ($book['isDailyDiscount']){
                 if ($this->checkDailyDiscountNotExpired($book['dailyDiscountExpDate'],$book['dailyCount'])){
                     $discount=$book['discountAmount'];
+                    $percentDiscount=$book['percentDiscountAmount'];
                 }else{
                     $discount=0;
+                    $percentDiscount=0;
                 }
             }else{
                 $discount=$book['discountAmount'];
+                $percentDiscount=$book['percentDiscountAmount'];
             }
             $book['discountAmount']=$discount;
+            $book['percentDiscountAmount']=$percentDiscount;
             $this->bookId=$book['id'];
             $book['image']=$this->getBookImage();
         }
